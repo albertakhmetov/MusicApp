@@ -60,6 +60,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <ProjectReference Include="..\MusicApp.Core\MusicApp.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<None Update="App.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</None>

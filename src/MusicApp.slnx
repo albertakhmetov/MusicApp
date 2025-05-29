@@ -5,4 +5,7 @@
   <Project Path="MusicApp/MusicApp.csproj">
     <Platform Project="x64" />
   </Project>
+  <Project Path="MusicApp.Core/MusicApp.Core.csproj">
+    <Platform Project="x64" />
+  </Project>
 </Solution>

@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0-windows</TargetFramework>
+		<Platforms>x64</Platforms>
+		<RuntimeIdentifier>win-x64</RuntimeIdentifier>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+	</PropertyGroup>
+	
+	<PropertyGroup>
+		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+		<AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+	</PropertyGroup>
+	
+  <ItemGroup>
+		<PackageReference Include="System.Reactive" Version="6.0.1" />
+	</ItemGroup>
+
+</Project>
