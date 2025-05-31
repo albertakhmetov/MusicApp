@@ -16,32 +16,32 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services;
+namespace MusicApp.Core;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Disposables;
 using System.Text;
 using System.Threading.Tasks;
-using MusicApp.Core.Models;
 
-public interface IPlaylistService
+public static class Extensions
 {
-    ItemCollection<MediaItem> Items { get; }
+    public static T DisposeWith<T>(this T obj, CompositeDisposable compositeDisposable) where T : IDisposable
+    {
+        compositeDisposable.Add(obj);
 
-    IObservable<bool> CanGoPrevious { get; }
+        return obj;
+    }
 
-    IObservable<bool> CanGoNext { get; }
+    public static void ForEach<T>(this IEnumerable<T> enumerable, Action<T> action)
+    {
+        ArgumentNullException.ThrowIfNull(enumerable);
+        ArgumentNullException.ThrowIfNull(action);
 
-    IObservable<bool> ShuffleMode { get; }
-
-    IObservable<bool> RepeatMode { get; }
-
-    void GoPrevious();
-
-    void GoNext();
-
-    bool SetShuffleMode(bool isShuffleMode);
-
-    bool SetRepeatMode(bool isRepeatMode);
+        foreach (var i in enumerable)
+        {
+            action(i);
+        }
+    }
 }

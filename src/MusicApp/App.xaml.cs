@@ -29,6 +29,8 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Windows.AppLifecycle;
+using MusicApp.Core.Services;
+using MusicApp.Services;
 using WinRT.Interop;
 
 public partial class App : Application
@@ -84,8 +86,10 @@ public partial class App : Application
     private IHost CreateHost()
     {
         var builder = Host.CreateApplicationBuilder();
-
+        
         builder.Services.AddSingleton<MainWindow>();
+
+        builder.Services.AddSingleton<IPlaybackService, PlaybackService>();
 
         return builder.Build();
     }

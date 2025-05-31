@@ -31,13 +31,23 @@ public interface IPlaybackService
 
     IObservable<ImageData> MediaItemCover { get; }
 
-    IObservable<int> Duration { get; }
+    ItemCollection<MediaItem> Items { get; }
 
     IObservable<int> Position { get; }
+
+    IObservable<int> Duration { get; }
 
     IObservable<int> Volume { get; }
 
     IObservable<PlaybackState> State { get; }
+
+    IObservable<bool> CanGoPrevious { get; }
+
+    IObservable<bool> CanGoNext { get; }
+
+    IObservable<bool> ShuffleMode { get; }
+
+    IObservable<bool> RepeatMode { get; }
 
     void Play();
 
@@ -45,7 +55,15 @@ public interface IPlaybackService
 
     void TogglePlaying();
 
-    bool SetPosition(int position);
+    void GoPrevious();
 
-    bool SetVolume(int volume);
+    void GoNext();
+
+    void SetPosition(int position);
+
+    void SetVolume(int volume);
+
+    void SetShuffleMode(bool isShuffleMode);
+
+    void SetRepeatMode(bool isRepeatMode);
 }

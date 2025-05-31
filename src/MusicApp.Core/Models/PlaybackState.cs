@@ -21,7 +21,7 @@ namespace MusicApp.Core.Models;
 public enum PlaybackState
 {
     Closed,
-    Loading,
+    Opening,
     Buffering,
     Playing,
     Paused,
