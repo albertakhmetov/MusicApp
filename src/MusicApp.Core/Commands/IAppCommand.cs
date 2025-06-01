@@ -16,37 +16,15 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core;
+namespace MusicApp.Core.Commands;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Disposables;
 using System.Text;
 using System.Threading.Tasks;
 
-public static class Extensions
+public interface IAppCommand
 {
-    public static T DisposeWith<T>(this T obj, CompositeDisposable compositeDisposable) where T : IDisposable
-    {
-        compositeDisposable.Add(obj);
-
-        return obj;
-    }
-
-    public static void ForEach<T>(this IEnumerable<T> enumerable, Action<T> action)
-    {
-        ArgumentNullException.ThrowIfNull(enumerable);
-        ArgumentNullException.ThrowIfNull(action);
-
-        foreach (var i in enumerable)
-        {
-            action(i);
-        }
-    }
-
-    public static int ToInt32(this double value)
-    {
-        return Convert.ToInt32(value);
-    }
+    void Execute();
 }

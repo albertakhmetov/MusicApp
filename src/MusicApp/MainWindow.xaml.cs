@@ -16,19 +16,101 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
- namespace MusicApp;
+namespace MusicApp;
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Windows.Input;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using MusicApp.Controls;
+using MusicApp.Core;
+using MusicApp.Core.Services;
+using MusicApp.Core.ViewModels;
+using MusicApp.Extensions;
+using WinRT.Interop;
 
-public partial class MainWindow : Window
+public partial class MainWindow : Window, IAppWindow
 {
-    public MainWindow(IServiceProvider serviceProvider)
+    public MainWindow(IApp app, PlayerViewModel playerViewModel, PlaylistViewModel playlistViewModel)
     {
+        ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(playerViewModel);
+
+        PlayerViewModel = playerViewModel;
+        PlaylistViewModel = playlistViewModel;
+
+        MinimizeCommand = new RelayCommand(_ => this.Minimize());
+        CloseCommand = new RelayCommand(_ => this.Close());
+
         this.InitializeComponent();
+
+        ExtendsContentIntoTitleBar = true;
+
+        var presenter = OverlappedPresenter.Create();
+        presenter.PreferredMinimumWidth = 600;
+        presenter.PreferredMaximumWidth = 800;
+        presenter.PreferredMinimumHeight = 600;
+        presenter.SetBorderAndTitleBar(true, false);
+
+        AppWindow.SetPresenter(presenter);
+
+        SizeChanged += (_, _) => UpdateDragRectangles();
+        Closed += (_, _) => app.Exit();
+
+        AppWindow.Resize(AppWindow.Size);
+    }
+
+    public nint Handle => WindowNative.GetWindowHandle(this);
+
+    public IAppSliderValueConverter TimeValueConverter { get; } = new SliderTimeValueConverter();
+
+    public PlayerViewModel PlayerViewModel { get; }
+
+    public PlaylistViewModel PlaylistViewModel { get; }
+
+    public ICommand MinimizeCommand { get; }
+
+    public ICommand CloseCommand { get; }
+
+    public ICommand SettingsCommand { get; } 
+
+    public void Show()
+    {
+        AppWindow.Show(true);
+    }
+
+    private void UpdateDragRectangles()
+    {
+        var scale = this.GetDpi() / 96d;
+
+        AppWindow.TitleBar.SetDragRectangles([
+            new Windows.Graphics.RectInt32(
+                0,
+                0,
+                ((HeaderGrid.ActualWidth - WindowControlsPanel.ActualWidth) * scale).ToInt32(),
+                (WindowControlsPanel.ActualHeight * scale).ToInt32()),
+            new Windows.Graphics.RectInt32(
+                0,
+                (WindowControlsPanel.ActualHeight * scale).ToInt32(),
+                (HeaderGrid.ActualWidth * scale).ToInt32(),
+                ((HeaderGrid.ActualHeight - WindowControlsPanel.ActualHeight) * scale).ToInt32())
+            ]);
+    }
+
+    private void OnGridLoaded(object sender, RoutedEventArgs e)
+    {
+        UpdateDragRectangles();
+    }
+
+    private sealed class SliderTimeValueConverter : IAppSliderValueConverter
+    {
+        public string Convert(int value)
+        {
+            return Converters.Helpers.ToString(TimeSpan.FromSeconds(value));
+        }
     }
 }

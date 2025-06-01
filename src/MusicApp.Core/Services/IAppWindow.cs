@@ -16,9 +16,19 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services;
+namespace MusicApp.Core.Services; 
 
-public interface IFilePickerService
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+public interface IAppWindow
 {
-    Task<string[]?> PickMultipleFilesAsync();
+    nint Handle { get; }
+
+    void Close();
+
+    void Show();
 }

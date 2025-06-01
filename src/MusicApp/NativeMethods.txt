@@ -1,0 +1,6 @@
+ShowWindow
+MonitorFromWindow
+GetDpiForMonitor
+
+GetTickCount
+GetDoubleClickTime

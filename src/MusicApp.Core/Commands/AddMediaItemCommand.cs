@@ -16,37 +16,49 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core;
+namespace MusicApp.Core.Commands;
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
-using System.Reactive.Disposables;
 using System.Text;
 using System.Threading.Tasks;
+using MusicApp.Core.Models;
+using MusicApp.Core.Services;
 
-public static class Extensions
+public class AddMediaItemCommand : IAppCommand
 {
-    public static T DisposeWith<T>(this T obj, CompositeDisposable compositeDisposable) where T : IDisposable
-    {
-        compositeDisposable.Add(obj);
+    private readonly IPlaybackService playbackService;
 
-        return obj;
+    public AddMediaItemCommand(IPlaybackService playbackService)
+    {
+        ArgumentNullException.ThrowIfNull(playbackService);
+
+        this.playbackService = playbackService;
     }
 
-    public static void ForEach<T>(this IEnumerable<T> enumerable, Action<T> action)
-    {
-        ArgumentNullException.ThrowIfNull(enumerable);
-        ArgumentNullException.ThrowIfNull(action);
+    public required IImmutableList<MediaItem> Items { get; init; }
 
-        foreach (var i in enumerable)
+    public bool Overwrite { get; init; }
+
+    public void Execute()
+    {
+        if (Items?.Any() != true)
         {
-            action(i);
+            return;
         }
-    }
 
-    public static int ToInt32(this double value)
-    {
-        return Convert.ToInt32(value);
+        var items = Items
+            .OrderBy(x => Path.GetFileName(x.FileName), StringLogicalComparer.Instance);
+
+        if (Overwrite)
+        {
+            playbackService.Items.Set(items);
+        }
+        else
+        {
+            playbackService.Items.Add(items);
+        }
     }
 }

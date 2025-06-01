@@ -32,11 +32,11 @@ using Microsoft.UI.Xaml.Shapes;
 [TemplatePart(Name = "PART_THUMB", Type = typeof(Thumb))]
 public class AppSlider : Control
 {
-    public static readonly DependencyProperty ThumbTipValueConverterProperty = DependencyProperty.Register(
-        nameof(ThumbTipValueConverter),
+    public static readonly DependencyProperty ValueConverterProperty = DependencyProperty.Register(
+        nameof(IAppSliderValueConverter),
         typeof(IValueConverter),
         typeof(AppSlider),
-        new PropertyMetadata(null, OnThumbTipValueConverterPropertyChanged));
+        new PropertyMetadata(null, OnValueConverterPropertyChanged));
 
     public static readonly DependencyProperty ValueProperty = DependencyProperty.Register(
         nameof(Value),
@@ -74,7 +74,7 @@ public class AppSlider : Control
         typeof(AppSlider),
         new PropertyMetadata(true, OnShowToolTipPropertyChanged));
 
-    private static void OnThumbTipValueConverterPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    private static void OnValueConverterPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
     {
         if (d is AppSlider slider)
         {
@@ -170,10 +170,10 @@ public class AppSlider : Control
         this.IsEnabledChanged += AppSlider_IsEnabledChanged;
     }
 
-    public IValueConverter ThumbTipValueConverter
+    public IAppSliderValueConverter ValueConverter
     {
-        get => (IValueConverter)GetValue(ThumbTipValueConverterProperty);
-        set => SetValue(ThumbTipValueConverterProperty, value);
+        get => (IAppSliderValueConverter)GetValue(ValueConverterProperty);
+        set => SetValue(ValueConverterProperty, value);
     }
 
     public int Value
@@ -381,9 +381,12 @@ public class AppSlider : Control
 
     private void SetValue(double value)
     {
-        var newValue = Convert.ToInt32(value);
-        Value = newValue == MaxValue ? newValue : (newValue / StepFrequency * StepFrequency);
-        PositionCommand?.Execute(Value);
+        if (double.IsFinite(value))
+        {
+            var newValue = Convert.ToInt32(value);
+            Value = newValue == MaxValue ? newValue : (newValue / StepFrequency * StepFrequency);
+            PositionCommand?.Execute(Value);
+        }
     }
 
     private void UpdateThumbPosition()
@@ -403,9 +406,9 @@ public class AppSlider : Control
     {
         if (toolTip != null)
         {
-            toolTip.Content = ThumbTipValueConverter == null
+            toolTip.Content = ValueConverter == null
                      ? Value.ToString()
-                     : ThumbTipValueConverter.Convert(Value, typeof(string), null, null);
+                     : ValueConverter.Convert(Value);
         }
     }
 }

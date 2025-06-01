@@ -25,6 +25,11 @@ public abstract class ObservableObject : INotifyPropertyChanged
 {
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    public void Invalidate(string? propertyName = null)
+    {
+        OnPropertyChanged(propertyName);
+    }
+
     protected bool Set<T>(ref T property, T value, [CallerMemberName] string? propertyName = null)
     {
         if (property is Enum && property.Equals(value))

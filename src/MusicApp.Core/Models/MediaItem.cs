@@ -25,7 +25,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public class MediaItem
+public class MediaItem : IEquatable<MediaItem>, IEquatable<string>
 {
     public static readonly MediaItem Empty = new(null);
 

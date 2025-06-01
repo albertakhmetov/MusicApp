@@ -49,11 +49,13 @@ public interface IPlaybackService
 
     IObservable<bool> RepeatMode { get; }
 
+    void Play(MediaItem? mediaItem);
+   
     void Play();
 
     void Pause();
 
-    void TogglePlaying();
+    void TogglePlayback();
 
     void GoPrevious();
 

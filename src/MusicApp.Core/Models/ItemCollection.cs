@@ -26,7 +26,7 @@ using System.Reactive.Subjects;
 using System.Text;
 using System.Threading.Tasks;
 
-public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
+public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction> where T : class, IEquatable<T>
 {
     private readonly List<T> items = [];
     private readonly Subject<CollectionAction> subject = new();
@@ -35,11 +35,13 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
     {
         ArgumentNullException.ThrowIfNull(newItems);
 
-        items.AddRange(newItems);
+        var filteredItems = newItems.Where(x => !items.Contains(x)).ToImmutableArray();
+        items.AddRange(filteredItems);
+
         subject.OnNext(new CollectionAction
         {
             Type = CollectionActionType.Add,
-            Items = newItems.ToImmutableArray()
+            Items = filteredItems
         });
     }
 
@@ -57,9 +59,12 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
         });
     }
 
-    public bool Remove(T item)
+    public bool Remove(T? item)
     {
-        ArgumentNullException.ThrowIfNull(item);
+        if (item == null)
+        {
+            return false;
+        }
 
         var index = items.IndexOf(item);
 
@@ -91,6 +96,13 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
             Type = CollectionActionType.Reset,
             Items = []
         });
+    }
+
+    public bool Contains(T item)
+    {
+        return item is IEquatable<T>
+            ? items.Any(x => x?.Equals(item) == true)
+            : items.Contains(item);
     }
 
     public IDisposable Subscribe(IObserver<CollectionAction> observer)

@@ -16,37 +16,35 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core;
+namespace MusicApp.Converters;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reactive.Disposables;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Data;
 
-public static class Extensions
+public class VisibilityConverter : IValueConverter
 {
-    public static T DisposeWith<T>(this T obj, CompositeDisposable compositeDisposable) where T : IDisposable
+    public object Convert(object value, Type targetType, object parameter, string language)
     {
-        compositeDisposable.Add(obj);
-
-        return obj;
-    }
-
-    public static void ForEach<T>(this IEnumerable<T> enumerable, Action<T> action)
-    {
-        ArgumentNullException.ThrowIfNull(enumerable);
-        ArgumentNullException.ThrowIfNull(action);
-
-        foreach (var i in enumerable)
+        if (value is bool b)
         {
-            action(i);
+            return Helpers.VisibleIf(b);
+        }
+        else if (value is int i)
+        {
+            return Helpers.VisibleIf(i);
+        }
+        else if (value is double d)
+        {
+            return Helpers.VisibleIf(d);
+        }
+        else
+        {
+            return value != null ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 
-    public static int ToInt32(this double value)
+    public object ConvertBack(object value, Type targetType, object parameter, string language)
     {
-        return Convert.ToInt32(value);
+        throw new NotImplementedException();
     }
 }

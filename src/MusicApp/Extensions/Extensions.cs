@@ -16,7 +16,7 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp;
+namespace MusicApp.Extensions;
 
 using System;
 using System.Collections.Generic;
@@ -41,7 +41,7 @@ static class Extensions
     {
         ArgumentNullException.ThrowIfNull(mediaSource);
 
-        mediaSource.CustomProperties.Add(nameof(T), value);
+        mediaSource.CustomProperties.Add(typeof(T).Name, value);
     }
 
     public static async Task<ImageData> LoadCover(this MediaItem? mediaFile)

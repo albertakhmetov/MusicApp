@@ -29,11 +29,13 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Windows.AppLifecycle;
+using MusicApp.Core.Commands;
 using MusicApp.Core.Services;
+using MusicApp.Core.ViewModels;
 using MusicApp.Services;
 using WinRT.Interop;
 
-public partial class App : Application
+public partial class App : Application, IApp
 {
     [STAThread]
     public static void Main(string[] args)
@@ -56,7 +58,7 @@ public partial class App : Application
 
     private readonly ImmutableArray<string> arguments;
     private IHost? host;
-    private MainWindow? mainWindow;
+    private IAppWindow? mainWindow;
 
     public App(string[] args)
     {
@@ -65,31 +67,41 @@ public partial class App : Application
         InitializeComponent();
     }
 
+    public nint Handle => mainWindow?.Handle ?? nint.Zero;
+
+    public void ShowSettings()
+    {
+        //host?.Services.GetRequiredService<SettingsWindow>()
+        //    .AppWindow
+        //    .Show(activateWindow: true);
+    }
+
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         base.OnLaunched(args);
 
         host = CreateHost();
 
-        mainWindow = host.Services.GetRequiredService<MainWindow>();
-        mainWindow.Closed += OnMainWindowClosed;
-        mainWindow.AppWindow.Show(true);
+        mainWindow = host.Services.GetRequiredService<IAppWindow>();
+        mainWindow.Show();
 
         _ = host.RunAsync();
-    }
-
-    private void OnMainWindowClosed(object sender, WindowEventArgs args)
-    {
-        Exit();
     }
 
     private IHost CreateHost()
     {
         var builder = Host.CreateApplicationBuilder();
-        
-        builder.Services.AddSingleton<MainWindow>();
+
+        builder.Services.AddSingleton<IApp>(this);
+        builder.Services.AddSingleton<IAppWindow, MainWindow>();
+        builder.Services.AddSingleton<IFileService, FileService>();
 
         builder.Services.AddSingleton<IPlaybackService, PlaybackService>();
+
+        builder.Services.AddSingleton<IAppCommandManager, AppCommandManager>();        
+
+        builder.Services.AddSingleton<PlayerViewModel>();
+        builder.Services.AddSingleton<PlaylistViewModel>();
 
         return builder.Build();
     }

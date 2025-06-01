@@ -21,32 +21,24 @@ namespace MusicApp.Core;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Disposables;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
-public static class Extensions
+public class StringLogicalComparer : IComparer<string>
 {
-    public static T DisposeWith<T>(this T obj, CompositeDisposable compositeDisposable) where T : IDisposable
-    {
-        compositeDisposable.Add(obj);
+    public static readonly StringLogicalComparer Instance = new();
 
-        return obj;
+    private StringLogicalComparer()
+    { }
+
+    public int Compare(string? x, string? y)
+    {
+        return (x == null || y == null)
+            ? string.Compare(x, y)
+            : StrCmpLogicalW(x, y);
     }
 
-    public static void ForEach<T>(this IEnumerable<T> enumerable, Action<T> action)
-    {
-        ArgumentNullException.ThrowIfNull(enumerable);
-        ArgumentNullException.ThrowIfNull(action);
-
-        foreach (var i in enumerable)
-        {
-            action(i);
-        }
-    }
-
-    public static int ToInt32(this double value)
-    {
-        return Convert.ToInt32(value);
-    }
+    [DllImport("shlwapi.dll", CharSet = CharSet.Unicode)]
+    private static extern int StrCmpLogicalW(string psz1, string psz2);
 }

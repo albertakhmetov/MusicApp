@@ -16,37 +16,35 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core;
+namespace MusicApp.Core.ViewModels;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive.Disposables;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Input;
+using MusicApp.Core.Models;
 
-public static class Extensions
+public sealed class PlaylistItemViewModel : ViewModel
 {
-    public static T DisposeWith<T>(this T obj, CompositeDisposable compositeDisposable) where T : IDisposable
-    {
-        compositeDisposable.Add(obj);
+    private readonly PlaylistViewModel playlist;
 
-        return obj;
+    public PlaylistItemViewModel(PlaylistViewModel playlist, MediaItem mediaItem)
+    {
+        ArgumentNullException.ThrowIfNull(playlist);
+        ArgumentNullException.ThrowIfNull(mediaItem);
+
+        this.playlist = playlist;
+
+        MediaItem = mediaItem;
     }
 
-    public static void ForEach<T>(this IEnumerable<T> enumerable, Action<T> action)
-    {
-        ArgumentNullException.ThrowIfNull(enumerable);
-        ArgumentNullException.ThrowIfNull(action);
+    public MediaItem MediaItem { get; }
 
-        foreach (var i in enumerable)
-        {
-            action(i);
-        }
-    }
+    public bool IsCurrent => playlist.CurrentItem?.Equals(MediaItem) == true;
 
-    public static int ToInt32(this double value)
-    {
-        return Convert.ToInt32(value);
-    }
+    public ICommand PlayCommand => playlist.PlayCommand;
+
+    public ICommand RemoveCommand => playlist.RemoveCommand;
 }

@@ -29,6 +29,7 @@ using System.Threading.Tasks;
 using MusicApp.Core;
 using MusicApp.Core.Models;
 using MusicApp.Core.Services;
+using MusicApp.Extensions;
 using Windows.Media;
 using Windows.Media.Core;
 using Windows.Media.Playback;
@@ -75,8 +76,8 @@ internal class PlaybackService : IPlaybackService, IDisposable
         Position = position
             .StartWith(mediaPlayer.PlaybackSession.Position)
             .Select(x => Convert.ToInt32(x.TotalSeconds))
-            .AsObservable();       
-        
+            .AsObservable();
+
         Duration = durationSubject.AsObservable();
         Volume = volumeSubject.AsObservable();
         State = playbackStateSubject.AsObservable();
@@ -110,6 +111,18 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
     public IObservable<bool> RepeatMode { get; }
 
+    public void Play(MediaItem? mediaItem)
+    {
+        var itemIndex = playbackList.Items.IndexOf(FindPlaybackItem(mediaItem));
+
+        if (itemIndex > -1)
+        {
+            playbackList.MoveTo((uint)itemIndex);
+        }
+
+        Play();
+    }
+
     public void Play()
     {
         mediaPlayer.Play();
@@ -120,10 +133,11 @@ internal class PlaybackService : IPlaybackService, IDisposable
         mediaPlayer.Pause();
     }
 
-    public void TogglePlaying()
+    public void TogglePlayback()
     {
         switch (playbackStateSubject.Value)
         {
+            case PlaybackState.Stopped:
             case PlaybackState.Paused:
                 Play();
                 break;
@@ -236,17 +250,24 @@ internal class PlaybackService : IPlaybackService, IDisposable
                     .ForEach(x => x.Dispose());
 
                 playbackList.Items.Clear();
-                action.Items.ForEach(async x => playbackList.Items.Add(await LoadPlaybackItem(x)));
+
+                foreach (var i in action.Items)
+                {
+                    playbackList.Items.Add(await LoadPlaybackItem(i));
+                }
+
                 break;
 
             case ItemCollection<MediaItem>.CollectionActionType.Add:
-                action.Items.ForEach(async x => playbackList.Items.Add(await LoadPlaybackItem(x)));
+                foreach (var i in action.Items)
+                {
+                    playbackList.Items.Add(await LoadPlaybackItem(i));
+                }
+
                 break;
 
             case ItemCollection<MediaItem>.CollectionActionType.Remove:
-                var itemToRemove = playbackList
-                    .Items
-                    .FirstOrDefault(x => x.Source.GetProperty<MediaItem>()?.Equals(action.Items[0]) == true);
+                var itemToRemove = FindPlaybackItem(action.Items[0]);
 
                 if (itemToRemove != null)
                 {
@@ -266,6 +287,13 @@ internal class PlaybackService : IPlaybackService, IDisposable
             mediaPlayer.Source = null;
             await SetCurrentItem(null);
         }
+    }
+
+    private MediaPlaybackItem? FindPlaybackItem(MediaItem? mediaItem)
+    {
+        return mediaItem == null ? null : playbackList
+            .Items
+            .FirstOrDefault(x => x.Source.GetProperty<MediaItem>()?.Equals(mediaItem) == true);
     }
 
     private static async Task<MediaPlaybackItem> LoadPlaybackItem(MediaItem mediaItem)
@@ -337,7 +365,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
             positionChanged = Observable
                 .FromEventPattern<object>(owner.mediaPlayer.PlaybackSession, nameof(MediaPlaybackSession.PositionChanged))
                 .Where(_ => !_isSeeking)
-                .Select(x => (TimeSpan)x.EventArgs)
+                .Select(x => owner.mediaPlayer.PlaybackSession.Position)
                 .Publish()
                 .RefCount();
 
