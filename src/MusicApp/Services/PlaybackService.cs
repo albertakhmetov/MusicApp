@@ -63,7 +63,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
         canGoPreviousSubject = new BehaviorSubject<bool>(false);
         canGoNextSubject = new BehaviorSubject<bool>(false);
         shuffleModeSubject = new BehaviorSubject<bool>(false);
-        repeatModeSubject = new BehaviorSubject<bool>(false);
+        repeatModeSubject = new BehaviorSubject<bool>(playbackList.AutoRepeatEnabled);
 
         mediaItemSubject = new BehaviorSubject<MediaItem>(Core.Models.MediaItem.Empty);
         mediaItemCoverSubject = new BehaviorSubject<ImageData>(Core.Models.ImageData.Empty);
@@ -180,7 +180,11 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
     public void SetRepeatMode(bool isRepeatMode)
     {
-        throw new NotImplementedException();
+        if (playbackList.AutoRepeatEnabled != isRepeatMode)
+        {
+            playbackList.AutoRepeatEnabled = isRepeatMode;
+            repeatModeSubject.OnNext(isRepeatMode);
+        }
     }
 
     public void Dispose()

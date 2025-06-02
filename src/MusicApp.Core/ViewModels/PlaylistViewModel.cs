@@ -127,6 +127,12 @@ public class PlaylistViewModel : ViewModel, IDisposable
             .ObserveOn(SynchronizationContext.Current)
             .Subscribe(x => CurrentItem = x)
             .DisposeWith(disposable);
+
+        playbackService
+            .RepeatMode
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(x => IsRepeatMode = x)
+            .DisposeWith(disposable);
     }
 
     private void UpdatePlaylist(ItemCollection<MediaItem>.CollectionAction action)
