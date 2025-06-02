@@ -150,12 +150,12 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
     public void GoPrevious()
     {
-        throw new NotImplementedException();
+        playbackList.MovePrevious();
     }
 
     public void GoNext()
     {
-        throw new NotImplementedException();
+        playbackList.MoveNext();
     }
 
     public void SetPosition(int newPosition)

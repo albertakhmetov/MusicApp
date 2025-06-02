@@ -49,8 +49,8 @@ public class PlayerViewModel : ViewModel, IDisposable
         mediaItem = MediaItem.Empty;
         mediaItemCover = ImageData.Empty;
 
-        GoPreviousCommand = new RelayCommand(_ => { });
-        GoNextCommand = new RelayCommand(_ => { });
+        GoPreviousCommand = new RelayCommand(_ => playbackService.GoPrevious());
+        GoNextCommand = new RelayCommand(_ => playbackService.GoNext());
         TogglePlaybackCommand = new RelayCommand(_ => playbackService.TogglePlayback());
         PositionCommand = new RelayCommand(SetPosition);
         VolumeCommand = new RelayCommand(SetVolume);
@@ -167,6 +167,18 @@ public class PlayerViewModel : ViewModel, IDisposable
             .MediaItemCover
             .ObserveOn(SynchronizationContext.Current)
             .Subscribe(x => MediaItemCover = x)
+            .DisposeWith(disposable);
+
+        playbackService
+            .CanGoPrevious
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(x => CanGoPrevious = x)
+            .DisposeWith(disposable);
+
+        playbackService
+            .CanGoNext
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(x => CanGoNext = x)
             .DisposeWith(disposable);
 
         playbackService

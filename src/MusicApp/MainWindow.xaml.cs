@@ -62,6 +62,8 @@ public partial class MainWindow : Window, IAppWindow
         Closed += (_, _) => app.Exit();
 
         AppWindow.Resize(AppWindow.Size);
+
+        (Content as Grid).RequestedTheme = ElementTheme.Dark;
     }
 
     public nint Handle => WindowNative.GetWindowHandle(this);
