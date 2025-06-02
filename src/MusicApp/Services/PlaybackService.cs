@@ -62,7 +62,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
         playbackStateSubject = new BehaviorSubject<PlaybackState>(GetPlaybackState());
         canGoPreviousSubject = new BehaviorSubject<bool>(false);
         canGoNextSubject = new BehaviorSubject<bool>(false);
-        shuffleModeSubject = new BehaviorSubject<bool>(false);
+        shuffleModeSubject = new BehaviorSubject<bool>(playbackList.ShuffleEnabled);
         repeatModeSubject = new BehaviorSubject<bool>(playbackList.AutoRepeatEnabled);
 
         mediaItemSubject = new BehaviorSubject<MediaItem>(Core.Models.MediaItem.Empty);
@@ -175,7 +175,13 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
     public void SetShuffleMode(bool isShuffleMode)
     {
-        throw new NotImplementedException();
+        if (playbackList.ShuffleEnabled != isShuffleMode)
+        {
+            playbackList.ShuffleEnabled = isShuffleMode;
+            shuffleModeSubject.OnNext(isShuffleMode);
+
+            UpdateNavigationState();
+        }
     }
 
     public void SetRepeatMode(bool isRepeatMode)
@@ -346,10 +352,14 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
     private void UpdateNavigationState()
     {
-        var index = playbackList.Items.IndexOf(playbackList.CurrentItem);
+        var items = shuffleModeSubject.Value
+            ? playbackList.ShuffledItems.ToArray()
+            : playbackList.Items.ToArray();
+
+        var index = Array.IndexOf(items, playbackList.CurrentItem);
 
         canGoPreviousSubject.OnNext(index > 0);
-        canGoNextSubject.OnNext(index > -1 && index < playbackList.Items.Count - 1);
+        canGoNextSubject.OnNext(index > -1 && index < items.Length - 1);
     }
 
     private sealed class PlaybackPosition : IObservable<TimeSpan>, IDisposable

@@ -129,6 +129,12 @@ public class PlaylistViewModel : ViewModel, IDisposable
             .DisposeWith(disposable);
 
         playbackService
+            .ShuffleMode
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(x => IsShuffleMode = x)
+            .DisposeWith(disposable);
+
+        playbackService
             .RepeatMode
             .ObserveOn(SynchronizationContext.Current)
             .Subscribe(x => IsRepeatMode = x)
