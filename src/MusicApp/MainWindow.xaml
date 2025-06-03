@@ -212,21 +212,6 @@
                             Command="{x:Bind PlayCommand}" 
                             CommandParameter="{x:Bind MediaItem}">
 
-                            <controls:AppItemContainer.ContextFlyout>
-                                <MenuFlyout>
-                                    <MenuFlyoutItem Text="Info">
-                                        <MenuFlyoutItem.Icon>
-                                            <FontIcon Glyph="&#xE946;" />
-                                        </MenuFlyoutItem.Icon>
-                                    </MenuFlyoutItem>
-                                    <MenuFlyoutItem Text="Remove">
-                                        <MenuFlyoutItem.Icon>
-                                            <FontIcon Glyph="&#xE74D;" />
-                                        </MenuFlyoutItem.Icon>
-                                    </MenuFlyoutItem>
-                                </MenuFlyout>
-                            </controls:AppItemContainer.ContextFlyout>
-
                             <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>

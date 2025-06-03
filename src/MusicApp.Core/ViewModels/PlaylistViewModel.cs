@@ -186,6 +186,8 @@ public class PlaylistViewModel : ViewModel, IDisposable
 
     private void RemoveAllItems()
     {
-        throw new NotImplementedException();
+        var command = new RemoveMediaItemCommand(playbackService);
+
+        commandManager.Execute(command);
     }
 }
