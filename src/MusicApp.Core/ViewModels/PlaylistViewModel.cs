@@ -59,10 +59,9 @@ public class PlaylistViewModel : ViewModel, IDisposable
         Items = new ReadOnlyObservableCollection<PlaylistItemViewModel>(items);
 
         AddCommand = new RelayCommand(async _ => await SelectAndAddItems());
-        RemoveAllCommand = new RelayCommand(_ => RemoveAllItems());
+        RemoveCommand = new RelayCommand(RemoveItem);
 
         PlayCommand = new RelayCommand(x => playbackService.Play(x as MediaItem));
-        RemoveCommand = new RelayCommand(x => playbackService.Items.Remove(x as MediaItem));
 
         InitSubscriptions();
     }
@@ -95,11 +94,9 @@ public class PlaylistViewModel : ViewModel, IDisposable
 
     public ICommand AddCommand { get; }
 
-    public ICommand RemoveAllCommand { get; }
+    public ICommand RemoveCommand { get; }
 
     public ICommand PlayCommand { get; }
-
-    public ICommand RemoveCommand { get; }
 
     public void Dispose()
     {
@@ -184,9 +181,21 @@ public class PlaylistViewModel : ViewModel, IDisposable
         commandManager.Execute(command);
     }
 
-    private void RemoveAllItems()
+    private void RemoveItem(object? fileName)
     {
-        var command = new RemoveMediaItemCommand(playbackService);
+        var item = fileName is string name
+                 ? Items.Select(x => x.MediaItem).FirstOrDefault(x => x.Equals(name))
+                 : null;
+
+        if (fileName is not null && item == null)
+        {
+            return;
+        }
+
+        var command = new RemoveMediaItemCommand(playbackService)
+        {
+            Item = item
+        };
 
         commandManager.Execute(command);
     }

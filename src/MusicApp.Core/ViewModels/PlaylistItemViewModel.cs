@@ -45,6 +45,4 @@ public sealed class PlaylistItemViewModel : ViewModel
     public bool IsCurrent => playlist.CurrentItem?.Equals(MediaItem) == true;
 
     public ICommand PlayCommand => playlist.PlayCommand;
-
-    public ICommand RemoveCommand => playlist.RemoveCommand;
 }

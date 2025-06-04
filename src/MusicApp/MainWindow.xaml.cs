@@ -25,12 +25,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using MusicApp.Controls;
 using MusicApp.Core;
+using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 using MusicApp.Core.ViewModels;
 using MusicApp.Extensions;
+using Windows.ApplicationModel.DataTransfer;
 using WinRT.Interop;
 
 public partial class MainWindow : Window, IAppWindow
@@ -78,7 +81,7 @@ public partial class MainWindow : Window, IAppWindow
 
     public ICommand CloseCommand { get; }
 
-    public ICommand SettingsCommand { get; } 
+    public ICommand SettingsCommand { get; }
 
     public void Show()
     {
@@ -114,5 +117,44 @@ public partial class MainWindow : Window, IAppWindow
         {
             return Converters.Helpers.ToString(TimeSpan.FromSeconds(value));
         }
+    }
+
+    private void Button_DragOver(object sender, DragEventArgs e)
+    {
+        e.AcceptedOperation = DataPackageOperation.Link;
+        e.DragUIOverride.Caption = "Remove";
+        e.DragUIOverride.IsGlyphVisible = false;
+    }
+
+    private async void Button_Drop(object sender, DragEventArgs e)
+    {
+        if (sender is ButtonBase button && e.DataView.Contains(StandardDataFormats.Text))
+        {
+            var fileName = await e.DataView.GetTextAsync();
+
+            button.Command?.Execute(fileName);
+        }
+    }
+
+    private void AppItemContainer_DragStarting(UIElement sender, DragStartingEventArgs args)
+    {
+        if (sender is FrameworkElement { DataContext: MediaItem mediaItem } != true)
+        {
+            args.Cancel = true;
+        }
+        else
+        {
+            args.Data.SetText(mediaItem.FileName);
+        }
+    }
+
+    private void Button_DragLeave(object sender, DragEventArgs e)
+    {
+        VisualStateManager.GoToState(sender as Control, "Normal", true);
+    }
+
+    private void Button_DragEnter(object sender, DragEventArgs e)
+    {
+        VisualStateManager.GoToState(sender as Control, "Pressed", true);
     }
 }

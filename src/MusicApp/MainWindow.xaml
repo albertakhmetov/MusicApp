@@ -201,6 +201,8 @@
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="vm:PlaylistItemViewModel">
                         <controls:AppItemContainer 
+                            CanDrag="True"
+                            DragStarting="AppItemContainer_DragStarting"
                             Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"
@@ -208,6 +210,7 @@
                             x:Name="Container"
                             Padding="4" 
                             DoubleClickMode="True"
+                            DataContext="{x:Bind MediaItem}"
                             IsSelected="{x:Bind IsCurrent, Mode=OneWay}"
                             Command="{x:Bind PlayCommand}" 
                             CommandParameter="{x:Bind MediaItem}">
@@ -265,7 +268,13 @@
                         </Button.Content>
                     </Button>
 
-                    <Button Command="{x:Bind PlaylistViewModel.RemoveAllCommand, Mode=OneWay}">
+                    <Button 
+                        AllowDrop="True"
+                        DragOver="Button_DragOver"
+                        DragEnter="Button_DragEnter"
+                        DragLeave="Button_DragLeave"
+                        Drop="Button_Drop"
+                        Command="{x:Bind PlaylistViewModel.RemoveCommand, Mode=OneWay}">
                         <Button.Content>
                             <FontIcon Glyph="&#xE74D;"/>
                         </Button.Content>
