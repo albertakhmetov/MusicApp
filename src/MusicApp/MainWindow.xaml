@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <Window
     x:Class="MusicApp.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
@@ -200,7 +201,7 @@
             <ItemsRepeater ItemsSource="{x:Bind PlaylistViewModel.Items}">
                 <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="vm:PlaylistItemViewModel">
-                        <controls:AppItemContainer 
+                        <controls:AppItemContainer                            
                             Background="{ThemeResource LayerOnAcrylicFillColorDefaultBrush}"
                             BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                             BorderThickness="1"

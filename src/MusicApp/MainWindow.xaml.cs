@@ -115,4 +115,9 @@ public partial class MainWindow : Window, IAppWindow
             return Converters.Helpers.ToString(TimeSpan.FromSeconds(value));
         }
     }
+
+    private void Container_DragStarting(UIElement sender, DragStartingEventArgs args)
+    {
+        args.DragUI.SetContentFromDataTemplate
+    }
 }
