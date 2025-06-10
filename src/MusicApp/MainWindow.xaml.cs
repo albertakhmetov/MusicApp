@@ -58,7 +58,6 @@ public partial class MainWindow : Window, IAppWindow
 
         AppWindow.SetPresenter(presenter);
 
-        SizeChanged += (_, _) => UpdateDragRectangles();
         Closed += (_, _) => app.Exit();
 
         AppWindow.Resize(AppWindow.Size);
@@ -116,8 +115,8 @@ public partial class MainWindow : Window, IAppWindow
         }
     }
 
-    private void Container_DragStarting(UIElement sender, DragStartingEventArgs args)
+    private void HeaderGrid_SizeChanged(object sender, SizeChangedEventArgs e)
     {
-        args.DragUI.SetContentFromDataTemplate
+        UpdateDragRectangles();
     }
 }

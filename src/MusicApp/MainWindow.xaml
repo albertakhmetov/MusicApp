@@ -27,7 +27,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <Grid x:Name="HeaderGrid" Margin="0,0,0,10">
+        <Grid x:Name="HeaderGrid" Margin="0,0,0,10" SizeChanged="HeaderGrid_SizeChanged">
             <Grid.Resources>
                 <Style TargetType="FontIcon">
                     <Setter Property="FontSize" Value="10"/>
