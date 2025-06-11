@@ -128,4 +128,21 @@ public partial class MainWindow : Window, IAppWindow
             model.PlayCommand.Execute(model.MediaItem);
         }
     }
+
+    private void ListView_KeyUp(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
+    {
+        if (e.OriginalSource is ListViewItem { Content: PlaylistItemViewModel model })
+        {
+            switch (e.OriginalKey)
+            {
+                case Windows.System.VirtualKey.Space:
+                    model.PlayCommand.Execute(model.MediaItem);
+                    break;
+
+                case Windows.System.VirtualKey.Delete:
+                    model.RemoveCommand.Execute(model.MediaItem);
+                    break;
+            }
+        }
+    }
 }

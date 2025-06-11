@@ -199,10 +199,11 @@
 
         <ListView 
             Grid.Row="2" 
-            Margin="0,10,0,10" 
+            Margin="0,10,0,10"
+            KeyUp="ListView_KeyUp"
             DoubleTapped="ListView_DoubleTapped"
             ItemsSource="{x:Bind PlaylistViewModel.Items}">
-            
+
             <ListView.ItemTemplate>
                 <DataTemplate x:DataType="vm:PlaylistItemViewModel">
                     <Grid>
@@ -211,6 +212,21 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="Auto"/>
                         </Grid.ColumnDefinitions>
+
+                        <Grid.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem
+                                    Icon="Play"
+                                    Text="Play"
+                                    Command="{x:Bind PlayCommand}"
+                                    CommandParameter="{x:Bind MediaItem}"/>
+                                <MenuFlyoutItem 
+                                    Icon="Delete"
+                                    Text="Remove"
+                                    Command="{x:Bind RemoveCommand}"
+                                    CommandParameter="{x:Bind MediaItem}"/>
+                            </MenuFlyout>
+                        </Grid.ContextFlyout>
 
                         <Path 
                             Stroke="{ThemeResource AccentFillColorDefaultBrush}" 
