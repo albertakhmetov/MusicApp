@@ -28,6 +28,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using MusicApp.Controls;
 using MusicApp.Core;
+using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 using MusicApp.Core.ViewModels;
 using MusicApp.Extensions;
@@ -77,7 +78,7 @@ public partial class MainWindow : Window, IAppWindow
 
     public ICommand CloseCommand { get; }
 
-    public ICommand SettingsCommand { get; } 
+    public ICommand SettingsCommand { get; }
 
     public void Show()
     {
@@ -118,5 +119,13 @@ public partial class MainWindow : Window, IAppWindow
     private void HeaderGrid_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         UpdateDragRectangles();
+    }
+
+    private void ListView_DoubleTapped(object sender, Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
+    {
+        if (e.OriginalSource is FrameworkElement { DataContext: PlaylistItemViewModel model })
+        {
+            model.PlayCommand.Execute(model.MediaItem);
+        }
     }
 }
