@@ -34,7 +34,7 @@ public class ItemObservableCollection<T> : ObservableCollection<T>
         OnCollectionChanged(new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Reset));
     }
 
-    public void Insert(IEnumerable<T>? items, int? startingIndex)
+    public void Insert(IEnumerable<T>? items, int? startingIndex = 0)
     {
         if (items == null || !items.Any())
         {

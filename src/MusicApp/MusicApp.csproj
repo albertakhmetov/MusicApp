@@ -59,6 +59,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <None Remove="Controls\DragTargetControl.xaml" />
 	  <None Remove="Styles.xaml" />
 	</ItemGroup>
 
@@ -85,6 +86,9 @@
 		<None Update="ControlStyles.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</None>
+		<Page Update="Controls\DragTargetControl.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
 		<None Update="MainWindow.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</None>

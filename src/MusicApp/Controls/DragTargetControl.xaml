@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="MusicApp.Controls.DragTargetControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:MusicApp.Controls"
+    xmlns:cvt="using:MusicApp.Converters"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Padding="16" Background="{ThemeResource AcrylicBackgroundFillColorBaseBrush}">
+        <Grid.Resources>
+            <Style TargetType="Rectangle" x:Key="DropRectangleStyle">
+                <Style.Setters>
+                    <Setter Property="RadiusX" Value="8"/>
+                    <Setter Property="RadiusY" Value="8"/>
+                    <Setter Property="AllowDrop" Value="True"/>
+                    <Setter Property="Opacity" Value="0.25"/>
+                    <Setter Property="Stroke" Value="{ThemeResource SurfaceStrokeColorFlyoutBrush}"/>
+                    <Setter Property="StrokeThickness" Value="1"/>
+                    <Setter Property="Fill" Value="{ThemeResource AccentAcrylicBackgroundFillColorBaseBrush}"/>
+                </Style.Setters>
+            </Style>
+            <Style TargetType="TextBlock">
+                <Style.Setters>
+                    <Setter Property="Margin" Value="0,8,0,0"/>
+                    <Setter Property="IsHitTestVisible" Value="False"/>
+                </Style.Setters>
+            </Style>
+            <Style TargetType="FontIcon">
+                <Style.Setters>
+                    <Setter Property="FontSize" Value="24"/>
+                    <Setter Property="IsHitTestVisible" Value="False"/>
+                </Style.Setters>
+            </Style>
+        </Grid.Resources>
+
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="Drag">
+                <VisualState x:Name="Normal"/>
+                <VisualState x:Name="Add">
+                    <Storyboard>
+                        <DoubleAnimationUsingKeyFrames 
+                            Storyboard.TargetName="AddItemsRect" 
+                            Storyboard.TargetProperty="Opacity">
+
+                            <SplineDoubleKeyFrame 
+                                KeyTime="{StaticResource ControlFastAnimationDuration}" 
+                                KeySpline="{StaticResource ControlFastOutSlowInKeySpline}" Value="1" />
+                        </DoubleAnimationUsingKeyFrames>
+                    </Storyboard>
+                </VisualState>
+                <VisualState x:Name="Replace">
+                    <Storyboard>
+                        <DoubleAnimationUsingKeyFrames 
+                            Storyboard.TargetName="ReplaceItemsRect" 
+                            Storyboard.TargetProperty="Opacity">
+
+                            <SplineDoubleKeyFrame 
+                                KeyTime="{StaticResource ControlFastAnimationDuration}" 
+                                KeySpline="{StaticResource ControlFastOutSlowInKeySpline}" Value="1" />
+                        </DoubleAnimationUsingKeyFrames>
+                    </Storyboard>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid Grid.Column="0">
+            <Rectangle 
+                x:Name="ReplaceItemsRect"
+                Style="{StaticResource DropRectangleStyle}"
+                Visibility="{x:Bind cvt:Helpers.VisibleIf(CanReplace), Mode=OneWay}"                
+                DragEnter="OnReplaceDragEnter"
+                DragLeave="OnDragLeave"
+                DragOver="OnDragOver"
+                Drop="OnReplaceDrop"/>
+            <StackPanel 
+                Visibility="{x:Bind cvt:Helpers.VisibleIf(CanReplace), Mode=OneWay}"
+                VerticalAlignment="Center"
+                HorizontalAlignment="Center">
+
+                <FontIcon Glyph="&#xEA39;" />
+                <TextBlock Text="Replace Playlist"/>
+            </StackPanel>
+        </Grid>
+
+        <Rectangle 
+            Visibility="{x:Bind cvt:Helpers.VisibleIf(CanReplace), Mode=OneWay}"
+            Grid.Column="1" 
+            Width="8"/>
+
+        <Grid 
+            Grid.Column="{x:Bind ConvertToAddColumn(CanReplace), Mode=OneWay}"
+            Grid.ColumnSpan="{x:Bind ConvertToAddColumnSpan(CanReplace), Mode=OneWay}">
+
+            <Rectangle 
+                x:Name="AddItemsRect"
+                Style="{StaticResource DropRectangleStyle}"
+                DragEnter="OnAddDragEnter"
+                DragLeave="OnDragLeave"
+                DragOver="OnDragOver"
+                Drop="OnAddDrop"
+                Fill="{ThemeResource AccentAcrylicBackgroundFillColorBaseBrush}"/>
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <FontIcon Glyph="&#xECC8;" />
+                <TextBlock Text="Add to Playlist"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

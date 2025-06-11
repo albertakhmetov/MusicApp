@@ -23,6 +23,8 @@ using MusicApp.Core.Models;
 
 public interface IFileService
 {
+    bool IsSupported(string? fileName);
+
     Task<IList<string>> PickMultipleFilesAsync();
 
     Task<IList<MediaItem>> LoadMediaItems(IEnumerable<string> fileNames);

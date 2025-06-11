@@ -64,10 +64,15 @@ public class PlaylistViewModel : ViewModel, IDisposable
         PlayCommand = new RelayCommand(x => playbackService.Play(x as MediaItem));
         RemoveCommand = new RelayCommand(x => playbackService.Items.Remove(x as MediaItem));
 
+        AddItemsCommand = new RelayCommand(x => AddItems(x as IList<string>, overwrite: false));
+        ReplaceItemsCommand = new RelayCommand(x => AddItems(x as IList<string>, overwrite: true));
+
         InitSubscriptions();
     }
 
     public ReadOnlyObservableCollection<PlaylistItemViewModel> Items { get; }
+
+    public bool IsEmpty => Items.Count == 0;
 
     public MediaItem? CurrentItem
     {
@@ -94,6 +99,10 @@ public class PlaylistViewModel : ViewModel, IDisposable
     }
 
     public ICommand AddCommand { get; }
+
+    public ICommand AddItemsCommand { get; }
+
+    public ICommand ReplaceItemsCommand { get; }
 
     public ICommand RemoveAllCommand { get; }
 
@@ -163,6 +172,8 @@ public class PlaylistViewModel : ViewModel, IDisposable
 
                 break;
         }
+
+        Invalidate(nameof(IsEmpty));
     }
 
     private async Task SelectAndAddItems()
@@ -187,6 +198,24 @@ public class PlaylistViewModel : ViewModel, IDisposable
     private void RemoveAllItems()
     {
         var command = new RemoveMediaItemCommand(playbackService);
+
+        commandManager.Execute(command);
+    }
+
+    private async void AddItems(IList<string>? fileNames, bool overwrite)
+    {
+        if (fileNames?.Any() != true)
+        {
+            return;
+        }
+
+        var items = await fileService.LoadMediaItems(fileNames);
+
+        var command = new AddMediaItemCommand(playbackService)
+        {
+            Items = items.ToImmutableArray(),
+            Overwrite = overwrite
+        };
 
         commandManager.Execute(command);
     }

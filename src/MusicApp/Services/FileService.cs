@@ -40,6 +40,11 @@ class FileService : IFileService
         this.app = app;
     }
 
+    public bool IsSupported(string? fileName)
+    {
+        return Path.GetExtension(fileName)?.Equals(".mp3", StringComparison.InvariantCultureIgnoreCase) == true;
+    }
+
     public async Task<IList<MediaItem>> LoadMediaItems(IEnumerable<string> fileNames)
     {
         var mediaItems = new List<MediaItem>();

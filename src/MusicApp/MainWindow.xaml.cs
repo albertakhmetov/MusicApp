@@ -32,17 +32,20 @@ using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 using MusicApp.Core.ViewModels;
 using MusicApp.Extensions;
+using Windows.ApplicationModel.DataTransfer;
 using WinRT.Interop;
 
 public partial class MainWindow : Window, IAppWindow
 {
-    public MainWindow(IApp app, PlayerViewModel playerViewModel, PlaylistViewModel playlistViewModel)
+    public MainWindow(IApp app, PlayerViewModel playerViewModel, PlaylistViewModel playlistViewModel, IFileService fileService)
     {
         ArgumentNullException.ThrowIfNull(app);
         ArgumentNullException.ThrowIfNull(playerViewModel);
+        ArgumentNullException.ThrowIfNull(fileService);
 
         PlayerViewModel = playerViewModel;
         PlaylistViewModel = playlistViewModel;
+        FileService = fileService;
 
         MinimizeCommand = new RelayCommand(_ => this.Minimize());
         CloseCommand = new RelayCommand(_ => this.Close());
@@ -73,6 +76,8 @@ public partial class MainWindow : Window, IAppWindow
     public PlayerViewModel PlayerViewModel { get; }
 
     public PlaylistViewModel PlaylistViewModel { get; }
+
+    public IFileService FileService { get; }
 
     public ICommand MinimizeCommand { get; }
 
@@ -144,5 +149,20 @@ public partial class MainWindow : Window, IAppWindow
                     break;
             }
         }
+    }
+
+    private void OnDragEnter(object sender, DragEventArgs e)
+    {
+        DragTarget.Visibility = Visibility.Visible;
+    }
+
+    private void OnDragLeave(object sender, DragEventArgs e)
+    {
+        DragTarget.Visibility = Visibility.Collapsed;
+    }
+
+    private void OnDropped(object sender, EventArgs e)
+    {
+        DragTarget.Visibility = Visibility.Collapsed;
     }
 }
