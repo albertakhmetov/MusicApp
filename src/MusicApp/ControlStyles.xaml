@@ -3,7 +3,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"  
     xmlns:controls="using:MusicApp.Controls"
-    xmlns:converters="using:MusicApp.Converters">
+    xmlns:h="using:MusicApp.Helpers">
 
     <Style TargetType="Thumb" x:Key="AppSliderThumbStyle">
         <Setter Property="BorderThickness" Value="1" />
@@ -373,7 +373,7 @@
                 <ControlTemplate TargetType="controls:AppItemContainer">
                     <Grid>
                         <Grid.Resources>
-                            <converters:VisibilityConverter x:Key="VisibilityConverter"/>
+                            <h:VisibilityConverter x:Key="VisibilityConverter"/>
                         </Grid.Resources>
                         
                         <VisualStateManager.VisualStateGroups>

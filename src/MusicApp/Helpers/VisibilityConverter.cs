@@ -16,7 +16,7 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Converters;
+namespace MusicApp.Helpers;
 
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
@@ -27,15 +27,15 @@ public class VisibilityConverter : IValueConverter
     {
         if (value is bool b)
         {
-            return Helpers.VisibleIf(b);
+            return Converters.VisibleIf(b);
         }
         else if (value is int i)
         {
-            return Helpers.VisibleIf(i);
+            return Converters.VisibleIf(i);
         }
         else if (value is double d)
         {
-            return Helpers.VisibleIf(d);
+            return Converters.VisibleIf(d);
         }
         else
         {

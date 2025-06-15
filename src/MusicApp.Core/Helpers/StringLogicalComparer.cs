@@ -16,7 +16,7 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core;
+namespace MusicApp.Core.Helpers;
 
 using System;
 using System.Collections.Generic;
@@ -34,7 +34,7 @@ public class StringLogicalComparer : IComparer<string>
 
     public int Compare(string? x, string? y)
     {
-        return (x == null || y == null)
+        return x == null || y == null
             ? string.Compare(x, y)
             : StrCmpLogicalW(x, y);
     }

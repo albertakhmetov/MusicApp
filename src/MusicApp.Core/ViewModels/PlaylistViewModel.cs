@@ -29,6 +29,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using MusicApp.Core.Commands;
+using MusicApp.Core.Helpers;
 using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 

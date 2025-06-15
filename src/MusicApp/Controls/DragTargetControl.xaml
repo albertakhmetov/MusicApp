@@ -4,7 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:MusicApp.Controls"
-    xmlns:cvt="using:MusicApp.Converters"
+    xmlns:h="using:MusicApp.Helpers"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -76,13 +76,13 @@
             <Rectangle 
                 x:Name="ReplaceItemsRect"
                 Style="{StaticResource DropRectangleStyle}"
-                Visibility="{x:Bind cvt:Helpers.VisibleIf(CanReplace), Mode=OneWay}"                
+                Visibility="{x:Bind h:Converters.VisibleIf(CanReplace), Mode=OneWay}"                
                 DragEnter="OnReplaceDragEnter"
                 DragLeave="OnDragLeave"
                 DragOver="OnDragOver"
                 Drop="OnReplaceDrop"/>
             <StackPanel 
-                Visibility="{x:Bind cvt:Helpers.VisibleIf(CanReplace), Mode=OneWay}"
+                Visibility="{x:Bind h:Converters.VisibleIf(CanReplace), Mode=OneWay}"
                 VerticalAlignment="Center"
                 HorizontalAlignment="Center">
 
@@ -92,7 +92,7 @@
         </Grid>
 
         <Rectangle 
-            Visibility="{x:Bind cvt:Helpers.VisibleIf(CanReplace), Mode=OneWay}"
+            Visibility="{x:Bind h:Converters.VisibleIf(CanReplace), Mode=OneWay}"
             Grid.Column="1" 
             Width="8"/>
 

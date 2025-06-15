@@ -52,13 +52,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="Views\**" />
-	  <EmbeddedResource Remove="Views\**" />
-	  <None Remove="Views\**" />
-	  <Page Remove="Views\**" />
-	</ItemGroup>
-
-	<ItemGroup>
 	  <None Remove="Controls\DragTargetControl.xaml" />
 	  <None Remove="Styles.xaml" />
 	</ItemGroup>
@@ -104,8 +97,4 @@
 		</ItemGroup>
 		<RemoveDir Directories="@(RemovingFolders)" />
 	</Target>
-
-	<ItemGroup>
-	  <PRIResource Remove="Views\**" />
-	</ItemGroup>
 </Project>

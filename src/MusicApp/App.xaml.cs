@@ -29,6 +29,7 @@ using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Windows.AppLifecycle;
+using MusicApp.Views;
 using MusicApp.Core.Commands;
 using MusicApp.Core.Services;
 using MusicApp.Core.ViewModels;

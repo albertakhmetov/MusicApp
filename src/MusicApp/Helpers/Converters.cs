@@ -16,7 +16,7 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Converters;
+namespace MusicApp.Helpers;
 
 using System;
 using System.Collections.Generic;
@@ -26,10 +26,10 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using MusicApp.Core;
+using MusicApp.Core.Helpers;
 using MusicApp.Core.Models;
 
-static class Helpers
+static class Converters
 {
     public static bool Not(bool value) => !value;
 

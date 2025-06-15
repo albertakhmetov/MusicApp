@@ -16,7 +16,7 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Extensions;
+namespace MusicApp.Helpers;
 
 using System;
 using System.Collections.Generic;
@@ -24,12 +24,30 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MusicApp.Core.Models;
+using MusicApp.Core.Services;
 using Windows.Media.Core;
 using Windows.Storage;
 using Windows.Storage.FileProperties;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.HiDpi;
+using Windows.Win32.UI.WindowsAndMessaging;
+using Windows.Win32.Graphics.Gdi;
 
 static class Extensions
 {
+    public static void Minimize(this IAppWindow window)
+    {
+        PInvoke.ShowWindow((HWND)window.Handle, SHOW_WINDOW_CMD.SW_MINIMIZE);
+    }
+
+    public static uint GetDpi(this IAppWindow window)
+    {
+        var monitor = PInvoke.MonitorFromWindow((HWND)window.Handle, MONITOR_FROM_FLAGS.MONITOR_DEFAULTTONEAREST);
+        PInvoke.GetDpiForMonitor(monitor, MONITOR_DPI_TYPE.MDT_EFFECTIVE_DPI, out var dpiX, out var _);
+        return dpiX;
+    }
+
     public static T? GetProperty<T>(this MediaSource? mediaSource) where T : class
     {
         return mediaSource?.CustomProperties.TryGetValue(nameof(MediaItem), out var value) == true

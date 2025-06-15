@@ -16,7 +16,7 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp;
+namespace MusicApp.Views;
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -28,10 +28,11 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using MusicApp.Controls;
 using MusicApp.Core;
+using MusicApp.Core.Helpers;
 using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 using MusicApp.Core.ViewModels;
-using MusicApp.Extensions;
+using MusicApp.Helpers;
 using Windows.ApplicationModel.DataTransfer;
 using WinRT.Interop;
 
@@ -117,7 +118,7 @@ public partial class MainWindow : Window, IAppWindow
     {
         public string Convert(int value)
         {
-            return Converters.Helpers.ToString(TimeSpan.FromSeconds(value));
+            return Helpers.Converters.ToString(TimeSpan.FromSeconds(value));
         }
     }
 
