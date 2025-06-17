@@ -22,10 +22,10 @@ using MusicApp.Core.Commands;
 
 public class AppCommandManager : IAppCommandManager
 {
-    public void Execute(IAppCommand command)
+    public async Task ExecuteAsync(IAppCommand command)
     {
         ArgumentNullException.ThrowIfNull(command);
 
-        command.Execute();
+        await command.ExecuteAsync();
     }
 }

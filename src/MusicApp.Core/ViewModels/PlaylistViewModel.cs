@@ -200,14 +200,14 @@ public class PlaylistViewModel : ViewModel, IDisposable
             Items = items.ToImmutableArray()
         };
 
-        commandManager.Execute(command);
+        commandManager.ExecuteAsync(command);
     }
 
     private void RemoveAllItems()
     {
         var command = new RemoveMediaItemCommand(playbackService);
 
-        commandManager.Execute(command);
+        commandManager.ExecuteAsync(command);
     }
 
     private async void AddItems(IList<string>? fileNames, bool overwrite)
@@ -225,6 +225,6 @@ public class PlaylistViewModel : ViewModel, IDisposable
             Overwrite = overwrite
         };
 
-        commandManager.Execute(command);
+        commandManager.ExecuteAsync(command);
     }
 }

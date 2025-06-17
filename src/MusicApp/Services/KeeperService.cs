@@ -72,25 +72,19 @@ internal class KeeperService : IHostedService
 
         var stateLoader = await StateLoader.Load(fileService, stream);
 
-        playbackService.Items.Set(stateLoader.Items ?? []);
+        await playbackService.Items.SetAsync(stateLoader.Items ?? []);
 
-        // Waiting for the playlist loading
-        _ = await playbackService.MediaItem.Skip(1).FirstAsync(_ =>
+        playbackService.SetMediaItem(stateLoader.CurrentItem);
+        playbackService.SetRepeatMode(stateLoader.RepeatMode);
+
+        if (stateLoader.ShuffledItems?.Any() == true)
         {
-            playbackService.SetMediaItem(stateLoader.CurrentItem);
-            playbackService.SetRepeatMode(stateLoader.RepeatMode);
-
-            if (stateLoader.ShuffledItems?.Any() == true)
-            {
-                playbackService.SetShuffleMode(stateLoader.ShuffledItems);
-            }
-            else
-            {
-                playbackService.SetShuffleMode(stateLoader.ShuffleMode);
-            }
-
-            return true;
-        });
+            playbackService.SetShuffleMode(stateLoader.ShuffledItems);
+        }
+        else
+        {
+            playbackService.SetShuffleMode(stateLoader.ShuffleMode);
+        }
     }
 
     private void SaveState(

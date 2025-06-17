@@ -26,40 +26,43 @@ using System.Reactive.Subjects;
 using System.Text;
 using System.Threading.Tasks;
 
-public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction> where T : class, IEquatable<T>
+public abstract class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction> where T : class, IEquatable<T>
 {
-    private readonly List<T> items = [];
     private readonly Subject<CollectionAction> subject = new();
 
-    public int Count => items.Count;
+    public abstract IImmutableList<T> Items { get; }
 
-    public void Add(IEnumerable<T> newItems)
+    public abstract int Count { get; }
+
+    public event EventHandler? CollectionChanged;
+
+    public async Task AddAsync(IEnumerable<T> newItems)
     {
         ArgumentNullException.ThrowIfNull(newItems);
 
-        var filteredItems = newItems.Where(x => !items.Contains(x)).ToImmutableArray();
-        items.AddRange(filteredItems);
+        var filteredItems = await AddRangeAsync(newItems);
+        OnCollectionChanged();
 
         subject.OnNext(new CollectionAction
         {
             Type = CollectionActionType.Add,
             Items = filteredItems,
-            FullItems = items.ToImmutableArray()
         });
     }
 
-    public void Set(IEnumerable<T> newItems)
+    public async Task SetAsync(IEnumerable<T> newItems)
     {
         ArgumentNullException.ThrowIfNull(newItems);
 
-        items.Clear();
-        items.AddRange(newItems);
+        Clear();
+
+        var filteredItems = await AddRangeAsync(newItems);
+        OnCollectionChanged();
 
         subject.OnNext(new CollectionAction
         {
             Type = CollectionActionType.Reset,
-            Items = newItems.ToImmutableArray(),
-            FullItems = items.ToImmutableArray()
+            Items = filteredItems.ToImmutableArray()
         });
     }
 
@@ -70,18 +73,18 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
             return false;
         }
 
-        var index = items.IndexOf(item);
+        var index = IndexOf(item);
 
         if (index > -1)
         {
-            items.RemoveAt(index);
+            RemoveAt(index);
+            OnCollectionChanged();
 
             subject.OnNext(new CollectionAction
             {
                 Type = CollectionActionType.Remove,
                 StartingIndex = index,
-                Items = new[] { item }.ToImmutableArray(),
-                FullItems = items.ToImmutableArray()
+                Items = new[] { item }.ToImmutableArray()
             });
 
             return true;
@@ -94,33 +97,51 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
 
     public void RemoveAll()
     {
-        items.Clear();
+        Clear();
+        OnCollectionChanged();
 
         subject.OnNext(new CollectionAction
         {
             Type = CollectionActionType.Reset,
-            Items = [],
-            FullItems = items.ToImmutableArray()
+            Items = []
         });
     }
 
-    public bool Contains(T item)
-    {
-        return item is IEquatable<T>
-            ? items.Any(x => x?.Equals(item) == true)
-            : items.Contains(item);
-    }
+    public abstract bool Contains(T item);
 
     public IDisposable Subscribe(IObserver<CollectionAction> observer)
     {
         observer.OnNext(new CollectionAction
         {
             Type = CollectionActionType.Reset,
-            Items = items.ToImmutableArray(),
-            FullItems = items.ToImmutableArray()
+            Items = Items.ToImmutableArray(),
         });
 
         return subject.Subscribe(observer);
+    }
+
+    protected virtual async Task<IImmutableList<T>> AddRangeAsync(IEnumerable<T> newItems)
+    {
+        var filteredItems = newItems.Where(x => !Contains(x)).ToImmutableArray();
+        foreach (var i in filteredItems)
+        {
+            await InsertAsync(i);
+        }
+
+        return filteredItems;
+    }
+
+    protected abstract void Clear();
+
+    protected abstract int IndexOf(T item);
+
+    protected abstract Task InsertAsync(T item, int? index = null);
+
+    protected abstract void RemoveAt(int index);
+
+    protected virtual void OnCollectionChanged()
+    {
+        CollectionChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public sealed class CollectionAction
@@ -130,8 +151,6 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
         public int StartingIndex { get; init; }
 
         public required IImmutableList<T> Items { get; init; }
-
-        public required IImmutableList<T> FullItems { get; init; }
     }
 
     public enum CollectionActionType

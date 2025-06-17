@@ -74,7 +74,8 @@ internal class PlaybackService : IPlaybackService, IDisposable
         mediaItemSubject = new BehaviorSubject<MediaItem>(Core.Models.MediaItem.Empty);
         mediaItemCoverSubject = new BehaviorSubject<ImageData>(Core.Models.ImageData.Empty);
 
-        Items = new ItemCollection<MediaItem>();
+        Items = new MediaItemCollection(this);
+        Items.CollectionChanged += Items_CollectionChanged;
 
         ShuffledItems = shuffledItemsSubject.AsObservable();
 
@@ -248,11 +249,6 @@ internal class PlaybackService : IPlaybackService, IDisposable
             throw new InvalidOperationException("SynchronizationContext.Current can't be null");
         }
 
-        Items
-            .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(async x => await UpdatePlaylist(x))
-            .DisposeWith(disposable);
-
         Observable
             .FromEventPattern<object>(mediaPlayer, nameof(MediaPlayer.VolumeChanged))
             .Select(x => Convert.ToInt32(mediaPlayer.Volume * 100))
@@ -287,44 +283,8 @@ internal class PlaybackService : IPlaybackService, IDisposable
         _ => throw new NotSupportedException($"{mediaPlayer.CurrentState} isn't supported"),
     };
 
-    private async Task UpdatePlaylist(ItemCollection<MediaItem>.CollectionAction action)
+    private async void Items_CollectionChanged(object? sender, EventArgs e)
     {
-        switch (action.Type)
-        {
-            case ItemCollection<MediaItem>.CollectionActionType.Reset:
-                playbackList.Items
-                    .Select(x => x.Source as IDisposable)
-                    .Where(x => x != null)
-                    .ForEach(x => x.Dispose());
-
-                playbackList.Items.Clear();
-
-                foreach (var i in action.Items)
-                {
-                    playbackList.Items.Add(await LoadPlaybackItem(i));
-                }
-
-                break;
-
-            case ItemCollection<MediaItem>.CollectionActionType.Add:
-                foreach (var i in action.Items)
-                {
-                    playbackList.Items.Add(await LoadPlaybackItem(i));
-                }
-
-                break;
-
-            case ItemCollection<MediaItem>.CollectionActionType.Remove:
-                var itemToRemove = FindPlaybackItem(action.Items[0]);
-
-                if (itemToRemove != null)
-                {
-                    playbackList.Items.Remove(itemToRemove);
-                }
-
-                break;
-        }
-
         shuffledItemsSubject.OnNext(GetShuffledItems());
 
         if (mediaPlayer.Source == null && playbackList.Items.Count > 0)
@@ -407,6 +367,85 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
         canGoPreviousSubject.OnNext(index > 0);
         canGoNextSubject.OnNext(index > -1 && index < items.Length - 1);
+    }
+
+    private sealed class MediaItemCollection : ItemCollection<MediaItem>
+    {
+        private readonly PlaybackService owner;
+        private IImmutableList<MediaItem>? mediaItems;
+
+        public MediaItemCollection(PlaybackService owner)
+        {
+            ArgumentNullException.ThrowIfNull(owner);
+
+            this.owner = owner;
+        }
+
+        public override IImmutableList<MediaItem> Items
+        {
+            get
+            {
+                if (mediaItems == null)
+                {
+                    mediaItems = owner.playbackList
+                        .Items
+                        .Select(x => x.Source.GetProperty<MediaItem>())
+                        .Where(x => x is not null)
+                        .ToImmutableArray();
+                }
+
+                return mediaItems;
+            }
+        }
+
+        public override int Count => owner.playbackList.Items.Count;
+
+        public override bool Contains(MediaItem item)
+        {
+            return owner.FindPlaybackItem(item) is not null;
+        }
+
+        protected override void Clear()
+        {
+            owner.playbackList.Items
+                .Select(x => x.Source as IDisposable)
+                .Where(x => x is not null)
+                .ForEach(x => x.Dispose());
+
+            owner.playbackList.Items.Clear();
+        }
+
+        protected override int IndexOf(MediaItem item)
+        {
+            var items = owner.playbackList.Items;
+
+            for (var i = 0; i < items.Count; i++)
+            {
+                if (items[i].Source.GetProperty<MediaItem>()?.Equals(item) == true)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        protected override async Task InsertAsync(MediaItem item, int? index = null)
+        {
+            owner.playbackList.Items.Add(await LoadPlaybackItem(item));
+        }
+
+        protected override void RemoveAt(int index)
+        {
+            owner.playbackList.Items.RemoveAt(index);
+        }
+
+        protected override void OnCollectionChanged()
+        {
+            base.OnCollectionChanged();
+
+            mediaItems = null;
+        }
     }
 
     private sealed class PlaybackPosition : IObservable<TimeSpan>, IDisposable

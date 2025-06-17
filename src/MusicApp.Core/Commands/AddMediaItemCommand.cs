@@ -43,7 +43,7 @@ public class AddMediaItemCommand : IAppCommand
 
     public bool Overwrite { get; init; }
 
-    public void Execute()
+    public async Task ExecuteAsync()
     {
         if (Items?.Any() != true)
         {
@@ -55,11 +55,11 @@ public class AddMediaItemCommand : IAppCommand
 
         if (Overwrite)
         {
-            playbackService.Items.Set(items);
+            await playbackService.Items.SetAsync(items);
         }
         else
         {
-            playbackService.Items.Add(items);
+            await playbackService.Items.AddAsync(items);
         }
     }
 }

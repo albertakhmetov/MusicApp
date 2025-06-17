@@ -40,7 +40,7 @@ public class RemoveMediaItemCommand : IAppCommand
 
     public MediaItem? Item { get; init; }
 
-    public void Execute()
+    public Task ExecuteAsync()
     {
         if (Item is not null)
         {
@@ -50,5 +50,7 @@ public class RemoveMediaItemCommand : IAppCommand
         {
             playbackService.Items.RemoveAll();
         }
+
+        return Task.CompletedTask;
     }
 }
