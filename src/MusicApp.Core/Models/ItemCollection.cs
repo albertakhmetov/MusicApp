@@ -31,6 +31,8 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
     private readonly List<T> items = [];
     private readonly Subject<CollectionAction> subject = new();
 
+    public int Count => items.Count;
+
     public void Add(IEnumerable<T> newItems)
     {
         ArgumentNullException.ThrowIfNull(newItems);
@@ -41,7 +43,8 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
         subject.OnNext(new CollectionAction
         {
             Type = CollectionActionType.Add,
-            Items = filteredItems
+            Items = filteredItems,
+            FullItems = items.ToImmutableArray()
         });
     }
 
@@ -55,7 +58,8 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
         subject.OnNext(new CollectionAction
         {
             Type = CollectionActionType.Reset,
-            Items = newItems.ToImmutableArray()
+            Items = newItems.ToImmutableArray(),
+            FullItems = items.ToImmutableArray()
         });
     }
 
@@ -76,7 +80,8 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
             {
                 Type = CollectionActionType.Remove,
                 StartingIndex = index,
-                Items = new[] { item }.ToImmutableArray()
+                Items = new[] { item }.ToImmutableArray(),
+                FullItems = items.ToImmutableArray()
             });
 
             return true;
@@ -94,7 +99,8 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
         subject.OnNext(new CollectionAction
         {
             Type = CollectionActionType.Reset,
-            Items = []
+            Items = [],
+            FullItems = items.ToImmutableArray()
         });
     }
 
@@ -110,7 +116,8 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
         observer.OnNext(new CollectionAction
         {
             Type = CollectionActionType.Reset,
-            Items = items.ToImmutableArray()
+            Items = items.ToImmutableArray(),
+            FullItems = items.ToImmutableArray()
         });
 
         return subject.Subscribe(observer);
@@ -123,6 +130,8 @@ public class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction>
         public int StartingIndex { get; init; }
 
         public required IImmutableList<T> Items { get; init; }
+
+        public required IImmutableList<T> FullItems { get; init; }
     }
 
     public enum CollectionActionType

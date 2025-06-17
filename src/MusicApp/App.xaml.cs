@@ -35,6 +35,7 @@ using MusicApp.Core.Services;
 using MusicApp.Core.ViewModels;
 using MusicApp.Services;
 using WinRT.Interop;
+using MusicApp.Service;
 
 public partial class App : Application, IApp
 {
@@ -92,6 +93,8 @@ public partial class App : Application, IApp
     private IHost CreateHost()
     {
         var builder = Host.CreateApplicationBuilder();
+
+        builder.Services.AddHostedService<KeeperService>();
 
         builder.Services.AddSingleton<IApp>(this);
         builder.Services.AddSingleton<IAppWindow, MainWindow>();

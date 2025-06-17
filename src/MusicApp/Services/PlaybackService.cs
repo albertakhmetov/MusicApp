@@ -19,7 +19,9 @@
 namespace MusicApp.Services;
 
 using System;
+using System.CodeDom;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
@@ -44,6 +46,8 @@ internal class PlaybackService : IPlaybackService, IDisposable
     private readonly BehaviorSubject<PlaybackState> playbackStateSubject;
     private readonly BehaviorSubject<bool> canGoPreviousSubject, canGoNextSubject, shuffleModeSubject, repeatModeSubject;
 
+    private readonly BehaviorSubject<IImmutableList<MediaItem>> shuffledItemsSubject;
+
     private readonly BehaviorSubject<MediaItem> mediaItemSubject;
     private readonly BehaviorSubject<ImageData> mediaItemCoverSubject;
 
@@ -65,10 +69,14 @@ internal class PlaybackService : IPlaybackService, IDisposable
         shuffleModeSubject = new BehaviorSubject<bool>(playbackList.ShuffleEnabled);
         repeatModeSubject = new BehaviorSubject<bool>(playbackList.AutoRepeatEnabled);
 
+        shuffledItemsSubject = new BehaviorSubject<IImmutableList<MediaItem>>(GetShuffledItems());
+
         mediaItemSubject = new BehaviorSubject<MediaItem>(Core.Models.MediaItem.Empty);
         mediaItemCoverSubject = new BehaviorSubject<ImageData>(Core.Models.ImageData.Empty);
 
         Items = new ItemCollection<MediaItem>();
+
+        ShuffledItems = shuffledItemsSubject.AsObservable();
 
         MediaItem = mediaItemSubject.AsObservable();
         MediaItemCover = mediaItemCoverSubject.AsObservable();
@@ -95,6 +103,8 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
     public ItemCollection<MediaItem> Items { get; }
 
+    public IObservable<IImmutableList<MediaItem>> ShuffledItems { get; }
+
     public IObservable<int> Position { get; }
 
     public IObservable<int> Duration { get; }
@@ -113,12 +123,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
     public void Play(MediaItem? mediaItem)
     {
-        var itemIndex = playbackList.Items.IndexOf(FindPlaybackItem(mediaItem));
-
-        if (itemIndex > -1)
-        {
-            playbackList.MoveTo((uint)itemIndex);
-        }
+        SetMediaItem(mediaItem);
 
         Play();
     }
@@ -148,6 +153,16 @@ internal class PlaybackService : IPlaybackService, IDisposable
         }
     }
 
+    public void SetMediaItem(MediaItem? mediaItem)
+    {
+        var itemIndex = playbackList.Items.IndexOf(FindPlaybackItem(mediaItem));
+
+        if (itemIndex > -1)
+        {
+            playbackList.MoveTo((uint)itemIndex);
+        }
+    }
+
     public void GoPrevious()
     {
         playbackList.MovePrevious();
@@ -173,6 +188,28 @@ internal class PlaybackService : IPlaybackService, IDisposable
         }
     }
 
+    public void SetShuffleMode(IEnumerable<MediaItem> shuffledItems)
+    {
+        if (shuffledItems?.Any() != true)
+        {
+            SetShuffleMode(false);
+        }
+        else
+        {
+            var set = new HashSet<MediaItem>(shuffledItems);
+            if (set.Count != Items.Count || set.Any(x => Items.Contains(x) is false))
+            {
+                throw new ArgumentException("The shuffled elements do not match the collection of elements");
+            }
+
+            var items = shuffledItems.Select(x => FindPlaybackItem(x));
+            playbackList.SetShuffledItems(items);
+
+            shuffleModeSubject.OnNext(true);
+            shuffledItemsSubject.OnNext(GetShuffledItems());
+        }
+    }
+
     public void SetShuffleMode(bool isShuffleMode)
     {
         if (playbackList.ShuffleEnabled != isShuffleMode)
@@ -181,6 +218,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
             shuffleModeSubject.OnNext(isShuffleMode);
 
             UpdateNavigationState();
+            shuffledItemsSubject.OnNext(GetShuffledItems());
         }
     }
 
@@ -234,7 +272,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
             .Select(x => x.EventArgs.NewItem)
             .Where(x => x != null)
             .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(async x => await SetCurrentItem(x))
+            .Subscribe(async x => await SetCurrentPlaybackItem(x))
             .DisposeWith(disposable);
     }
 
@@ -287,6 +325,8 @@ internal class PlaybackService : IPlaybackService, IDisposable
                 break;
         }
 
+        shuffledItemsSubject.OnNext(GetShuffledItems());
+
         if (mediaPlayer.Source == null && playbackList.Items.Count > 0)
         {
             mediaPlayer.Source = playbackList;
@@ -295,8 +335,15 @@ internal class PlaybackService : IPlaybackService, IDisposable
         if (mediaPlayer.Source != null && playbackList.Items.Count == 0)
         {
             mediaPlayer.Source = null;
-            await SetCurrentItem(null);
+            await SetCurrentPlaybackItem(null);
         }
+    }
+
+    private ImmutableArray<MediaItem> GetShuffledItems()
+    {
+        return playbackList.ShuffleEnabled
+            ? playbackList.ShuffledItems.Select(x => x.Source.GetProperty<MediaItem>()!).ToImmutableArray()
+            : [];
     }
 
     private MediaPlaybackItem? FindPlaybackItem(MediaItem? mediaItem)
@@ -327,7 +374,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
         return item;
     }
 
-    private async Task SetCurrentItem(MediaPlaybackItem? playbackItem)
+    private async Task SetCurrentPlaybackItem(MediaPlaybackItem? playbackItem)
     {
         var mediaItem = playbackItem?.Source.GetProperty<MediaItem>() ?? Core.Models.MediaItem.Empty;
         mediaItemSubject.OnNext(mediaItem);

@@ -141,14 +141,21 @@ public class PlaylistViewModel : ViewModel, IDisposable
         playbackService
             .ShuffleMode
             .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(x => IsShuffleMode = x)
+            .Subscribe(x =>
+            {
+                isShuffleMode = x;
+                Invalidate(nameof(IsShuffleMode));
+            })
             .DisposeWith(disposable);
 
         playbackService
             .RepeatMode
             .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(x => IsRepeatMode = x)
-            .DisposeWith(disposable);
+            .Subscribe(x =>
+            {
+                isRepeatMode = x;
+                Invalidate(nameof(IsRepeatMode));
+            }).DisposeWith(disposable);
     }
 
     private void UpdatePlaylist(ItemCollection<MediaItem>.CollectionAction action)

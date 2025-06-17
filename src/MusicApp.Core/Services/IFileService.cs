@@ -25,6 +25,10 @@ public interface IFileService
 {
     bool IsSupported(string? fileName);
 
+    Stream? ReadUserFile(string fileName);
+
+    Stream WriteUserFile(string fileName, bool overwrite);
+
     Task<IList<string>> PickMultipleFilesAsync();
 
     Task<IList<MediaItem>> LoadMediaItems(IEnumerable<string> fileNames);

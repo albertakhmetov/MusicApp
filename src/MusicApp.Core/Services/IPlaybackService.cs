@@ -20,6 +20,7 @@ namespace MusicApp.Core.Services;
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,6 +33,8 @@ public interface IPlaybackService
     IObservable<ImageData> MediaItemCover { get; }
 
     ItemCollection<MediaItem> Items { get; }
+
+    IObservable<IImmutableList<MediaItem>> ShuffledItems { get; }
 
     IObservable<int> Position { get; }
 
@@ -57,6 +60,8 @@ public interface IPlaybackService
 
     void TogglePlayback();
 
+    void SetMediaItem(MediaItem? mediaItem);
+
     void GoPrevious();
 
     void GoNext();
@@ -64,6 +69,8 @@ public interface IPlaybackService
     void SetPosition(int position);
 
     void SetVolume(int volume);
+
+    void SetShuffleMode(IEnumerable<MediaItem> shuffledItems);
 
     void SetShuffleMode(bool isShuffleMode);
 

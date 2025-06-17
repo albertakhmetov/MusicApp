@@ -33,6 +33,26 @@ class FileService : IFileService
 {
     private readonly IApp app;
 
+    private string UserDataPath => "./"; // todo: replace to user/local folder
+
+    public Stream? ReadUserFile(string fileName)
+    {
+        var file = new FileInfo(Path.Combine(UserDataPath, fileName));
+
+        return file.Exists ? file.OpenRead() : null;
+    }
+
+    public Stream WriteUserFile(string fileName, bool overwrite)
+    {
+        var file = new FileInfo(Path.Combine(UserDataPath, fileName));
+        if (overwrite && file.Exists)
+        {
+            file.Delete();
+        }
+
+        return file.OpenWrite();
+    }
+
     public FileService(IApp app)
     {
         ArgumentNullException.ThrowIfNull(app);
