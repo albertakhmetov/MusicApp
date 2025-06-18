@@ -59,7 +59,7 @@ public class PlaylistViewModel : ViewModel, IDisposable
         items = [];
         Items = new ReadOnlyObservableCollection<PlaylistItemViewModel>(items);
 
-        AddCommand = new RelayCommand(async _ => await SelectAndAddItems());
+        AddCommand = new RelayCommand(_ => SelectAndAddItemsAsync());
         RemoveAllCommand = new RelayCommand(_ => RemoveAllItems());
 
         PlayCommand = new RelayCommand(x => playbackService.Play(x as MediaItem));
@@ -184,7 +184,7 @@ public class PlaylistViewModel : ViewModel, IDisposable
         Invalidate(nameof(IsEmpty));
     }
 
-    private async Task SelectAndAddItems()
+    private async void SelectAndAddItemsAsync()
     {
         var selectedFiles = await fileService.PickMultipleFilesAsync();
 
@@ -200,14 +200,14 @@ public class PlaylistViewModel : ViewModel, IDisposable
             Items = items.ToImmutableArray()
         };
 
-        commandManager.ExecuteAsync(command);
+        await commandManager.ExecuteAsync(command);
     }
 
-    private void RemoveAllItems()
+    private async void RemoveAllItems()
     {
         var command = new RemoveMediaItemCommand(playbackService);
 
-        commandManager.ExecuteAsync(command);
+        await commandManager.ExecuteAsync(command);
     }
 
     private async void AddItems(IList<string>? fileNames, bool overwrite)
@@ -225,6 +225,6 @@ public class PlaylistViewModel : ViewModel, IDisposable
             Overwrite = overwrite
         };
 
-        commandManager.ExecuteAsync(command);
+        await commandManager.ExecuteAsync(command);
     }
 }

@@ -67,8 +67,8 @@ static class Extensions
         if (mediaFile?.IsEmpty == false)
         {
             var file = await StorageFile.GetFileFromPathAsync(mediaFile.FileName);
-
-            var thumbnail = await file.GetThumbnailAsync(ThumbnailMode.MusicView, 300, ThumbnailOptions.UseCurrentScale);
+           
+            using var thumbnail = await file.GetThumbnailAsync(ThumbnailMode.MusicView, 300, ThumbnailOptions.UseCurrentScale);
 
             if (thumbnail != null && thumbnail.Type == ThumbnailType.Image)
             {

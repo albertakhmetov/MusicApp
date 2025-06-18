@@ -57,7 +57,10 @@ internal class PlaybackService : IPlaybackService, IDisposable
     public PlaybackService()
     {
         mediaPlayer = new MediaPlayer();
-        playbackList = new MediaPlaybackList();
+        playbackList = new MediaPlaybackList
+        {
+            MaxPlayedItemsToKeepOpen = 0
+        };
 
         position = new PlaybackPosition(this).DisposeWith(disposable);
 
@@ -335,7 +338,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
     }
 
     private async Task SetCurrentPlaybackItem(MediaPlaybackItem? playbackItem)
-    {
+    {       
         var mediaItem = playbackItem?.Source.GetProperty<MediaItem>() ?? Core.Models.MediaItem.Empty;
         mediaItemSubject.OnNext(mediaItem);
 
