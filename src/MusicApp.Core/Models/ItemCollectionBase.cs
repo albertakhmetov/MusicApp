@@ -26,11 +26,11 @@ using System.Reactive.Subjects;
 using System.Text;
 using System.Threading.Tasks;
 
-public abstract class ItemCollection<T> : IObservable<ItemCollection<T>.CollectionAction> where T : class, IEquatable<T>
+public abstract class ItemCollectionBase<T> : IObservable<ItemCollectionAction<T>> where T : class, IEquatable<T>
 {
-    private readonly Subject<CollectionAction> subject = new();
+    private readonly Subject<ItemCollectionAction<T>> subject = new();
 
-    public abstract IImmutableList<T> Items { get; }
+    public abstract IImmutableList<T> List { get; }
 
     public abstract int Count { get; }
 
@@ -43,9 +43,9 @@ public abstract class ItemCollection<T> : IObservable<ItemCollection<T>.Collecti
         var filteredItems = await AddRangeAsync(newItems);
         OnCollectionChanged();
 
-        subject.OnNext(new CollectionAction
+        subject.OnNext(new ItemCollectionAction<T>
         {
-            Type = CollectionActionType.Add,
+            Type = ItemCollectionActionType.Add,
             Items = filteredItems,
         });
     }
@@ -59,9 +59,9 @@ public abstract class ItemCollection<T> : IObservable<ItemCollection<T>.Collecti
         var filteredItems = await AddRangeAsync(newItems);
         OnCollectionChanged();
 
-        subject.OnNext(new CollectionAction
+        subject.OnNext(new ItemCollectionAction<T>
         {
-            Type = CollectionActionType.Reset,
+            Type = ItemCollectionActionType.Reset,
             Items = filteredItems.ToImmutableArray()
         });
     }
@@ -80,9 +80,9 @@ public abstract class ItemCollection<T> : IObservable<ItemCollection<T>.Collecti
             RemoveAt(index);
             OnCollectionChanged();
 
-            subject.OnNext(new CollectionAction
+            subject.OnNext(new ItemCollectionAction<T>
             {
-                Type = CollectionActionType.Remove,
+                Type = ItemCollectionActionType.Remove,
                 StartingIndex = index,
                 Items = new[] { item }.ToImmutableArray()
             });
@@ -100,21 +100,21 @@ public abstract class ItemCollection<T> : IObservable<ItemCollection<T>.Collecti
         Clear();
         OnCollectionChanged();
 
-        subject.OnNext(new CollectionAction
+        subject.OnNext(new ItemCollectionAction<T>
         {
-            Type = CollectionActionType.Reset,
+            Type = ItemCollectionActionType.Reset,
             Items = []
         });
     }
 
     public abstract bool Contains(T item);
 
-    public IDisposable Subscribe(IObserver<CollectionAction> observer)
+    public IDisposable Subscribe(IObserver<ItemCollectionAction<T>> observer)
     {
-        observer.OnNext(new CollectionAction
+        observer.OnNext(new ItemCollectionAction<T>
         {
-            Type = CollectionActionType.Reset,
-            Items = Items.ToImmutableArray(),
+            Type = ItemCollectionActionType.Reset,
+            Items = List,
         });
 
         return subject.Subscribe(observer);
@@ -142,21 +142,5 @@ public abstract class ItemCollection<T> : IObservable<ItemCollection<T>.Collecti
     protected virtual void OnCollectionChanged()
     {
         CollectionChanged?.Invoke(this, EventArgs.Empty);
-    }
-
-    public sealed class CollectionAction
-    {
-        public CollectionActionType Type { get; init; }
-
-        public int StartingIndex { get; init; }
-
-        public required IImmutableList<T> Items { get; init; }
-    }
-
-    public enum CollectionActionType
-    {
-        Reset,
-        Add,
-        Remove,
     }
 }

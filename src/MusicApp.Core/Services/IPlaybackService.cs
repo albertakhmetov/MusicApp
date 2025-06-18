@@ -32,7 +32,7 @@ public interface IPlaybackService
 
     IObservable<ImageData> MediaItemCover { get; }
 
-    ItemCollection<MediaItem> Items { get; }
+    ItemCollectionBase<MediaItem> Items { get; }
 
     IObservable<IImmutableList<MediaItem>> ShuffledItems { get; }
 

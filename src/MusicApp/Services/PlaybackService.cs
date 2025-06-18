@@ -102,7 +102,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
     public IObservable<ImageData> MediaItemCover { get; }
 
-    public ItemCollection<MediaItem> Items { get; }
+    public ItemCollectionBase<MediaItem> Items { get; }
 
     public IObservable<IImmutableList<MediaItem>> ShuffledItems { get; }
 
@@ -369,7 +369,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
         canGoNextSubject.OnNext(index > -1 && index < items.Length - 1);
     }
 
-    private sealed class MediaItemCollection : ItemCollection<MediaItem>
+    private sealed class MediaItemCollection : ItemCollectionBase<MediaItem>
     {
         private readonly PlaybackService owner;
         private IImmutableList<MediaItem>? mediaItems;
@@ -381,7 +381,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
             this.owner = owner;
         }
 
-        public override IImmutableList<MediaItem> Items
+        public override IImmutableList<MediaItem> List
         {
             get
             {

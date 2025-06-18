@@ -158,19 +158,19 @@ public class PlaylistViewModel : ViewModel, IDisposable
             }).DisposeWith(disposable);
     }
 
-    private void UpdatePlaylist(ItemCollection<MediaItem>.CollectionAction action)
+    private void UpdatePlaylist(ItemCollectionAction<MediaItem> action)
     {
         switch (action.Type)
         {
-            case ItemCollection<MediaItem>.CollectionActionType.Reset:
+            case ItemCollectionActionType.Reset:
                 items.Set(action.Items.Select(i => new PlaylistItemViewModel(this, i)));
                 break;
 
-            case ItemCollection<MediaItem>.CollectionActionType.Add:
+            case ItemCollectionActionType.Add:
                 items.Insert(action.Items.Select(i => new PlaylistItemViewModel(this, i)), null);
                 break;
 
-            case ItemCollection<MediaItem>.CollectionActionType.Remove:
+            case ItemCollectionActionType.Remove:
                 var itemToRemove = items.FirstOrDefault(x => x.MediaItem.Equals(action.Items[0]));
 
                 if (itemToRemove != null)

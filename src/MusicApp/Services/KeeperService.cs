@@ -36,6 +36,8 @@ using System.Threading.Tasks;
 
 internal class KeeperService : IHostedService
 {
+    private const string PLAYLIST_FILENAME = "playlist.json";
+
     private readonly CompositeDisposable disposable = [];
     private readonly IPlaybackService playbackService;
     private readonly IFileService fileService;
@@ -53,17 +55,17 @@ internal class KeeperService : IHostedService
     {
         await LoadState();
 
-        //playbackService
-        //    .Items
-        //    .CombineLatest(playbackService.ShuffledItems, playbackService.MediaItem, playbackService.ShuffleMode, playbackService.RepeatMode)
-        //    .Throttle(TimeSpan.FromMilliseconds(500))
-        //    .Subscribe(x => SaveState(x.First.FullItems, x.Second, x.Third, x.Fourth, x.Fifth))
-        //    .DisposeWith(disposable);
+        playbackService
+            .Items
+            .CombineLatest(playbackService.ShuffledItems, playbackService.MediaItem, playbackService.ShuffleMode, playbackService.RepeatMode)
+            .Throttle(TimeSpan.FromMilliseconds(500))
+            .Subscribe(x => SaveState(playbackService.Items.List, x.Second, x.Third, x.Fourth, x.Fifth))
+            .DisposeWith(disposable);
     }
 
     private async Task LoadState()
     {
-        using var stream = fileService.ReadUserFile("playlist.json");
+        using var stream = fileService.ReadUserFile(PLAYLIST_FILENAME);
 
         if (stream == null)
         {
@@ -94,24 +96,24 @@ internal class KeeperService : IHostedService
         bool shuffleMode,
         bool repeatMode)
     {
-        using var stream = fileService.WriteUserFile("playlist.json", overwrite: true);
+        using var stream = fileService.WriteUserFile(PLAYLIST_FILENAME, overwrite: true);
 
         var options = new JsonWriterOptions { Indented = true };
         using var writer = new Utf8JsonWriter(stream, options);
 
         writer.WriteStartObject();
 
-        writer.WriteStartArray("Items");
+        writer.WriteStartArray(nameof(StateLoader.Items));
         items.ForEach(x => writer.WriteStringValue(x.FileName));
         writer.WriteEndArray();
 
-        writer.WriteStartArray("ShuffledItems");
+        writer.WriteStartArray(nameof(StateLoader.ShuffledItems));
         shuffledItems.ForEach(x => writer.WriteNumberValue(items.IndexOf(x)));
         writer.WriteEndArray();
 
-        writer.WriteNumber("CurrentItem", items.IndexOf(currentItem));
-        writer.WriteBoolean("ShuffleMode", shuffleMode);
-        writer.WriteBoolean("RepeatMode", repeatMode);
+        writer.WriteNumber(nameof(StateLoader.CurrentItem), items.IndexOf(currentItem));
+        writer.WriteBoolean(nameof(StateLoader.ShuffleMode), shuffleMode);
+        writer.WriteBoolean(nameof(StateLoader.RepeatMode), repeatMode);
 
         writer.WriteEndObject();
 
@@ -210,7 +212,7 @@ internal class KeeperService : IHostedService
             {
                 var indices = shuffledItems.Select(x => x!.GetValue<int>()).ToArray();
 
-                if (indices.Min() >= 0 && indices.Max() < Items.Count)
+                if (indices.Any() && indices.Min() >= 0 && indices.Max() < Items.Count)
                 {
                     return indices.Select(x => Items[x]).ToImmutableArray();
                 }
