@@ -184,6 +184,7 @@ public class PlayerViewModel : ViewModel, IDisposable
 
         playbackService
             .State
+            .Throttle(TimeSpan.FromMilliseconds(200))
             .ObserveOn(SynchronizationContext.Current)
             .Subscribe(x =>
             {

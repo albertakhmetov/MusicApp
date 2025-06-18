@@ -65,16 +65,16 @@
                 </Button>
             </StackPanel>
 
-            <Border 
+            <Grid 
                 Grid.Column="0" Grid.Row="0" Grid.RowSpan="3"
                 MaxHeight="96"
-                CornerRadius="8" Margin="12,12,12,0" VerticalAlignment="Top">
+                CornerRadius="8" Margin="12,12,12,0">
 
                 <Image
                     Visibility="{x:Bind h:Converters.VisibleIf(PlayerViewModel.IsActivePlayback), Mode=OneWay}"
                     Source="{x:Bind h:Converters.LoadCover(PlayerViewModel.MediaItemCover), Mode=OneWay}"
                     Stretch="UniformToFill"/>
-            </Border>
+            </Grid>
 
             <StackPanel 
                 Grid.Column="1" Grid.ColumnSpan="2" Grid.Row="1">
