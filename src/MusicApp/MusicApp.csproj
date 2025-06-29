@@ -76,7 +76,7 @@
 		<None Update="App.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</None>
-		<None Update="ControlStyles.xaml">
+		<None Update="Generic.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</None>
 		<Page Update="Controls\DragTargetControl.xaml">
