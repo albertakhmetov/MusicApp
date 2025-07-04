@@ -28,32 +28,29 @@ using MusicApp.Core.Helpers;
 using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 
-public class AddMediaItemCommand : IAppCommand
+public class MediaItemAddCommand : IAppCommand<MediaItemAddCommand.Parameters>
 {
     private readonly IPlaybackService playbackService;
 
-    public AddMediaItemCommand(IPlaybackService playbackService)
+    public MediaItemAddCommand(IPlaybackService playbackService)
     {
         ArgumentNullException.ThrowIfNull(playbackService);
 
         this.playbackService = playbackService;
     }
 
-    public required IImmutableList<MediaItem> Items { get; init; }
-
-    public bool Overwrite { get; init; }
-
-    public async Task ExecuteAsync()
+    public async Task ExecuteAsync(Parameters parameters)
     {
-        if (Items?.Any() != true)
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        if (parameters.Items?.Any() != true)
         {
             return;
         }
 
-        var items = Items
-            .OrderBy(x => Path.GetFileName(x.FileName), StringLogicalComparer.Instance);
+        var items = parameters.Items.OrderBy(x => Path.GetFileName(x.FileName), StringLogicalComparer.Instance);
 
-        if (Overwrite)
+        if (parameters.Overwrite)
         {
             await playbackService.Items.SetAsync(items);
         }
@@ -61,5 +58,13 @@ public class AddMediaItemCommand : IAppCommand
         {
             await playbackService.Items.AddAsync(items);
         }
+    }
+
+
+    public sealed class Parameters
+    {
+        public required IImmutableList<MediaItem> Items { get; init; }
+
+        public bool Overwrite { get; init; } = false;
     }
 }

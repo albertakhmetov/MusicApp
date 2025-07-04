@@ -26,5 +26,5 @@ using System.Threading.Tasks;
 
 public interface IAppCommandManager
 {
-    Task ExecuteAsync(IAppCommand command);
+    Task ExecuteAsync<T>(T parameters);
 }

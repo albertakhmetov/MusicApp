@@ -16,41 +16,23 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Commands; 
+namespace MusicApp.Core.Commands;
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MusicApp.Core.Models;
-using MusicApp.Core.Services;
 
-public class RemoveMediaItemCommand : IAppCommand
+public interface IUndoable
 {
-    private readonly IPlaybackService playbackService;
+    bool IsExecuted { get; }
 
-    public RemoveMediaItemCommand(IPlaybackService playbackService)
-    {
-        ArgumentNullException.ThrowIfNull(playbackService);
+    bool CanUndo { get; }
 
-        this.playbackService = playbackService;
-    }
+    bool CanRedo { get; }
 
-    public MediaItem? Item { get; init; }
+    Task Undo();
 
-    public Task ExecuteAsync()
-    {
-        if (Item is not null)
-        {
-            playbackService.Items.Remove(Item);
-        }
-        else
-        {
-            playbackService.Items.RemoveAll();
-        }
-
-        return Task.CompletedTask;
-    }
+    Task Redo();
 }

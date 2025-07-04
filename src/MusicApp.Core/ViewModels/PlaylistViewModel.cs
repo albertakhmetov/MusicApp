@@ -38,7 +38,7 @@ public class PlaylistViewModel : ViewModel, IDisposable
     private readonly CompositeDisposable disposable = [];
     private readonly IPlaybackService playbackService;
     private readonly IFileService fileService;
-    private readonly IAppCommandManager commandManager;
+    private readonly IAppCommandManager appCommandManager;
 
     private readonly ItemObservableCollection<PlaylistItemViewModel> items;
     private MediaItem? currentItem;
@@ -47,26 +47,26 @@ public class PlaylistViewModel : ViewModel, IDisposable
     public PlaylistViewModel(
         IPlaybackService playbackService,
         IFileService fileService,
-        IAppCommandManager commandManager)
+        IAppCommandManager appCommandManager)
     {
         ArgumentNullException.ThrowIfNull(playbackService);
-        ArgumentNullException.ThrowIfNull(commandManager);
+        ArgumentNullException.ThrowIfNull(appCommandManager);
 
         this.playbackService = playbackService;
         this.fileService = fileService;
-        this.commandManager = commandManager;
+        this.appCommandManager = appCommandManager;
 
         items = [];
         Items = new ReadOnlyObservableCollection<PlaylistItemViewModel>(items);
 
         AddCommand = new RelayCommand(_ => SelectAndAddItemsAsync());
+        RemoveCommand = new RelayCommand(x => RemoveMediaItem(x as MediaItem));
         RemoveAllCommand = new RelayCommand(_ => RemoveAllItems());
 
         PlayCommand = new RelayCommand(x => playbackService.Play(x as MediaItem));
-        RemoveCommand = new RelayCommand(x => playbackService.Items.Remove(x as MediaItem));
 
-        AddItemsCommand = new RelayCommand(x => AddItems(x as IList<string>, overwrite: false));
-        ReplaceItemsCommand = new RelayCommand(x => AddItems(x as IList<string>, overwrite: true));
+        AddItemsCommand = new RelayCommand(x => AddMediaItems(x as IList<string>, overwrite: false));
+        ReplaceItemsCommand = new RelayCommand(x => AddMediaItems(x as IList<string>, overwrite: true));
 
         InitSubscriptions();
     }
@@ -195,22 +195,21 @@ public class PlaylistViewModel : ViewModel, IDisposable
 
         var items = await fileService.LoadMediaItems(selectedFiles);
 
-        var command = new AddMediaItemCommand(playbackService)
+        await appCommandManager.ExecuteAsync(new MediaItemAddCommand.Parameters
         {
             Items = items.ToImmutableArray()
-        };
-
-        await commandManager.ExecuteAsync(command);
+        });
     }
 
     private async void RemoveAllItems()
     {
-        var command = new RemoveMediaItemCommand(playbackService);
-
-        await commandManager.ExecuteAsync(command);
+        await appCommandManager.ExecuteAsync(new MediaItemRemoveCommand.Parameters
+        {
+            RemoveAll = true
+        });
     }
 
-    private async void AddItems(IList<string>? fileNames, bool overwrite)
+    private async void AddMediaItems(IList<string>? fileNames, bool overwrite)
     {
         if (fileNames?.Any() != true)
         {
@@ -219,12 +218,23 @@ public class PlaylistViewModel : ViewModel, IDisposable
 
         var items = await fileService.LoadMediaItems(fileNames);
 
-        var command = new AddMediaItemCommand(playbackService)
+        await appCommandManager.ExecuteAsync(new MediaItemAddCommand.Parameters
         {
             Items = items.ToImmutableArray(),
             Overwrite = overwrite
-        };
+        });
+    }
 
-        await commandManager.ExecuteAsync(command);
+    private async void RemoveMediaItem(MediaItem? mediaItem)
+    {
+        if (mediaItem is null)
+        {
+            return;
+        }
+
+        await appCommandManager.ExecuteAsync(new MediaItemRemoveCommand.Parameters
+        {
+            Item = mediaItem
+        });
     }
 }

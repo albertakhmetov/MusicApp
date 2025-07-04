@@ -19,31 +19,12 @@
 namespace MusicApp.Core.Commands;
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Reactive.Linq;
-using System.Reactive.Subjects;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
 
-public class AppCommandManager : IAppCommandManager
+public interface IUndoableHistoryManager
 {
-    private readonly IServiceProvider serviceProvider;
-
-    public AppCommandManager(IServiceProvider serviceProvider)
-    {
-        ArgumentNullException.ThrowIfNull(serviceProvider);
-
-        this.serviceProvider = serviceProvider;
-    }
-
-    public async Task ExecuteAsync<T>(T parameters)
-    {
-        var command = serviceProvider.GetRequiredService<IAppCommand<T>>();
-
-        await command.ExecuteAsync(parameters);
-    }
+    void Push(IUndoable undoable);
 }

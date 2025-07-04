@@ -24,7 +24,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public interface IAppCommand
+public interface IAppCommand<T>
 {
-    Task ExecuteAsync();
+    Task ExecuteAsync(T parameters);
 }
