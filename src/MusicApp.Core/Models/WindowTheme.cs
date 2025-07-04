@@ -16,26 +16,17 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services;
+namespace MusicApp.Core.Models;
 
-using System.Collections.Immutable;
-using MusicApp.Core.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-public interface IFileService
+public enum WindowTheme
 {
-    string ApplicationPath { get; }
-
-    string UserDataPath { get; }
-
-    Stream? ReadUserFile(string fileName);
-
-    Stream WriteUserFile(string fileName, bool overwrite);
-
-    Task<IList<string>> PickFilesForOpenAsync(IImmutableList<FileType> fileTypes);
-
-    Task<string?> PickFileForOpenAsync(IImmutableList<FileType> fileTypes);
-
-    Task<string?> PickFileForSaveAsync(IImmutableList<FileType> fileTypes, string? suggestedFileName = null);
-
-    Task<IList<MediaItem>> LoadMediaItems(IEnumerable<string> fileNames);
+    System,
+    Light,
+    Dark
 }

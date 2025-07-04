@@ -18,24 +18,24 @@
  */
 namespace MusicApp.Core.Services;
 
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using MusicApp.Core.Models;
+using MusicApp.Core.ViewModels;
 
-public interface IFileService
+public interface IAppService
 {
-    string ApplicationPath { get; }
+    AppInfo AppInfo { get; }
 
-    string UserDataPath { get; }
+    IImmutableList<FileType> SupportedFileTypes { get; }
 
-    Stream? ReadUserFile(string fileName);
+    bool IsFileSupported(string? fileName);
 
-    Stream WriteUserFile(string fileName, bool overwrite);
+    Task ShowSettings();
 
-    Task<IList<string>> PickFilesForOpenAsync(IImmutableList<FileType> fileTypes);
-
-    Task<string?> PickFileForOpenAsync(IImmutableList<FileType> fileTypes);
-
-    Task<string?> PickFileForSaveAsync(IImmutableList<FileType> fileTypes, string? suggestedFileName = null);
-
-    Task<IList<MediaItem>> LoadMediaItems(IEnumerable<string> fileNames);
+    void Exit();
 }

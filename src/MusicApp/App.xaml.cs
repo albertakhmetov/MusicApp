@@ -16,7 +16,7 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
- namespace MusicApp;
+namespace MusicApp;
 
 using System;
 using System.Collections.Immutable;
@@ -36,8 +36,9 @@ using MusicApp.Core.ViewModels;
 using MusicApp.Services;
 using WinRT.Interop;
 using MusicApp.Service;
+using MusicApp.Core.Models;
 
-public partial class App : Application, IApp
+public partial class App : Application
 {
     [STAThread]
     public static void Main(string[] args)
@@ -64,27 +65,30 @@ public partial class App : Application, IApp
 
     public App(string[] args)
     {
+        host = CreateHost();
         this.arguments = ImmutableArray.Create(args);
 
         InitializeComponent();
-    }
 
-    public nint Handle => mainWindow?.Handle ?? nint.Zero;
+        var theme = host.Services.GetRequiredService<ISettingsService>().WindowTheme.Value;
 
-    public void ShowSettings()
-    {
-        //host?.Services.GetRequiredService<SettingsWindow>()
-        //    .AppWindow
-        //    .Show(activateWindow: true);
+        switch (theme)
+        {
+            case WindowTheme.Dark:
+                RequestedTheme = ApplicationTheme.Dark;
+                break;
+
+            case WindowTheme.Light:
+                RequestedTheme = ApplicationTheme.Light;
+                break;
+        }
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         base.OnLaunched(args);
 
-        host = CreateHost();
-
-        mainWindow = host.Services.GetRequiredService<IAppWindow>();
+        mainWindow = host.Services.GetRequiredKeyedService<IAppWindow>("Main");
         mainWindow.Show();
 
         _ = host.RunAsync();
@@ -96,16 +100,24 @@ public partial class App : Application, IApp
 
         builder.Services.AddHostedService<KeeperService>();
 
-        builder.Services.AddSingleton<IApp>(this);
-        builder.Services.AddSingleton<IAppWindow, MainWindow>();
+        builder.Services.AddSingleton<IAppService, AppService>();
+
+        builder.Services.AddKeyedSingleton<IAppWindow, MainWindow>("Main");
+        builder.Services.AddSingleton<SettingsWindow>();
+
         builder.Services.AddSingleton<IFileService, FileService>();
+        builder.Services.AddSingleton<ISystemEventsService, SystemEventsService>();
+        builder.Services.AddSingleton<ISettingsService, SettingsService>();
 
         builder.Services.AddSingleton<IPlaybackService, PlaybackService>();
 
-        builder.Services.AddSingleton<IAppCommandManager, AppCommandManager>();        
+        builder.Services.AddSingleton<IAppCommandManager, AppCommandManager>();
+        builder.Services.AddTransient<IAppCommand<MediaItemAddCommand.Parameters>, MediaItemAddCommand>();
+        builder.Services.AddTransient<IAppCommand<MediaItemRemoveCommand.Parameters>, MediaItemRemoveCommand>();
 
         builder.Services.AddSingleton<PlayerViewModel>();
         builder.Services.AddSingleton<PlaylistViewModel>();
+        builder.Services.AddSingleton<SettingsViewModel>();
 
         return builder.Build();
     }

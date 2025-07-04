@@ -262,7 +262,7 @@
                 x:Name="DragTarget"
                 Dropped="OnDropped"
                 CanReplace="{x:Bind h:Converters.Not(PlaylistViewModel.IsEmpty), Mode=OneWay}"
-                FileService="{x:Bind FileService}"
+                AppService="{x:Bind AppService}"
                 ReplaceCommand="{x:Bind PlaylistViewModel.ReplaceItemsCommand, Mode=OneWay}"
                 AddCommand="{x:Bind PlaylistViewModel.AddItemsCommand, Mode=OneWay}"
                 Visibility="Collapsed"/>

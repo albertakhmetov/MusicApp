@@ -18,6 +18,8 @@
  */
 namespace MusicApp.Views;
 
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Windows.Input;
@@ -33,23 +35,39 @@ using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 using MusicApp.Core.ViewModels;
 using MusicApp.Helpers;
+using Windows.ApplicationModel.Chat;
 using Windows.ApplicationModel.DataTransfer;
 using WinRT.Interop;
 
 public partial class MainWindow : Window, IAppWindow
 {
-    public MainWindow(IApp app, PlayerViewModel playerViewModel, PlaylistViewModel playlistViewModel, IFileService fileService)
-    {
-        ArgumentNullException.ThrowIfNull(app);
-        ArgumentNullException.ThrowIfNull(playerViewModel);
-        ArgumentNullException.ThrowIfNull(fileService);
+    private readonly CompositeDisposable disposable = [];
+    private readonly ISettingsService settingsService;
+    private readonly ISystemEventsService systemEventsService;
 
+    public MainWindow(
+        IAppService appService,
+        ISettingsService settingsService,
+        ISystemEventsService systemEventsService,
+        PlayerViewModel playerViewModel,
+        PlaylistViewModel playlistViewModel)
+    {
+        ArgumentNullException.ThrowIfNull(appService); 
+        ArgumentNullException.ThrowIfNull(settingsService);
+        ArgumentNullException.ThrowIfNull(systemEventsService);
+        ArgumentNullException.ThrowIfNull(playerViewModel);
+        ArgumentNullException.ThrowIfNull(playlistViewModel);
+
+        this.settingsService = settingsService;
+        this.systemEventsService = systemEventsService;
+
+        AppService = appService;
         PlayerViewModel = playerViewModel;
         PlaylistViewModel = playlistViewModel;
-        FileService = fileService;
 
         MinimizeCommand = new RelayCommand(_ => this.Minimize());
         CloseCommand = new RelayCommand(_ => this.Close());
+        SettingsCommand = new RelayCommand(_ => AppService.ShowSettings());
 
         this.InitializeComponent();
 
@@ -63,11 +81,12 @@ public partial class MainWindow : Window, IAppWindow
 
         AppWindow.SetPresenter(presenter);
 
-        Closed += (_, _) => app.Exit();
+      //  Closed += (_, _) => AppService.Exit();
 
         AppWindow.Resize(AppWindow.Size);
 
-        (Content as Grid).RequestedTheme = ElementTheme.Dark;
+        Closed += OnClosed;
+        InitSubscriptions();
     }
 
     public nint Handle => WindowNative.GetWindowHandle(this);
@@ -78,7 +97,7 @@ public partial class MainWindow : Window, IAppWindow
 
     public PlaylistViewModel PlaylistViewModel { get; }
 
-    public IFileService FileService { get; }
+    public IAppService AppService { get; }
 
     public ICommand MinimizeCommand { get; }
 
@@ -89,6 +108,34 @@ public partial class MainWindow : Window, IAppWindow
     public void Show()
     {
         AppWindow.Show(true);
+    }
+
+    private void InitSubscriptions()
+    {
+        if (SynchronizationContext.Current == null)
+        {
+            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
+        }
+
+        Observable
+            .CombineLatest(
+                settingsService.WindowTheme,
+                systemEventsService.AppDarkTheme,
+                (theme, isSystemDark) => theme == WindowTheme.Dark || theme == WindowTheme.System && isSystemDark)
+            .DistinctUntilChanged()
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(isDarkTheme => this.UpdateTheme(isDarkTheme))
+            .DisposeWith(disposable);
+    }
+
+    private void OnClosed(object sender, WindowEventArgs args)
+    {
+        if (!disposable.IsDisposed)
+        {
+            disposable.Dispose();
+        }
+
+        AppService.Exit();
     }
 
     private void UpdateDragRectangles()

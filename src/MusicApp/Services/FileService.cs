@@ -25,15 +25,37 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MusicApp.Core.Models;
+using MusicApp.Core.Helpers;
 using MusicApp.Core.Services;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using WinRT.Interop;
+using System.Diagnostics;
+using Microsoft.Extensions.DependencyInjection;
 
 class FileService : IFileService
 {
-    private readonly IApp app;
+    private readonly IServiceProvider serviceProvider;
 
-    private string UserDataPath => "./"; // todo: replace to user/local folder
+    public FileService(IServiceProvider serviceProvider)
+    {
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        this.serviceProvider = serviceProvider;
+    
+        var processModule = Process.GetCurrentProcess().MainModule;
+        if (processModule is null)
+        {
+            throw new InvalidOperationException("Process.GetCurrentProcess().MainModule is null");
+        }
+
+        ApplicationPath = processModule.FileName;
+        UserDataPath = Path.GetDirectoryName(ApplicationPath)!;
+    }
+
+    public string ApplicationPath { get; }
+
+    public string UserDataPath { get; }
 
     public Stream? ReadUserFile(string fileName)
     {
@@ -53,16 +75,49 @@ class FileService : IFileService
         return file.OpenWrite();
     }
 
-    public FileService(IApp app)
+    public async Task<IList<string>> PickFilesForOpenAsync(IImmutableList<FileType> fileTypes)
     {
-        ArgumentNullException.ThrowIfNull(app);
+        var openPicker = new FileOpenPicker();
+        InitializeWithWindow.Initialize(openPicker, GetHandle());
 
-        this.app = app;
+        openPicker.ViewMode = PickerViewMode.Thumbnail;
+        openPicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+
+        fileTypes.ForEach(x => openPicker.FileTypeFilter.Add(x.Extension));
+
+        var files = await openPicker.PickMultipleFilesAsync();
+        return files?.Select(x => x.Path).ToArray() ?? [];
     }
 
-    public bool IsSupported(string? fileName)
+    public async Task<string?> PickFileForOpenAsync(IImmutableList<FileType> fileTypes)
     {
-        return Path.GetExtension(fileName)?.Equals(".mp3", StringComparison.InvariantCultureIgnoreCase) == true;
+        var openPicker = new FileOpenPicker();
+        InitializeWithWindow.Initialize(openPicker, GetHandle());
+
+        openPicker.ViewMode = PickerViewMode.Thumbnail;
+        openPicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+
+        fileTypes.ForEach(x => openPicker.FileTypeFilter.Add(x.Extension));
+
+        var file = await openPicker.PickSingleFileAsync();
+        return file?.Path;
+    }
+
+    public async Task<string?> PickFileForSaveAsync(IImmutableList<FileType> fileTypes, string? suggestedFileName = null)
+    {
+        var savePicker = new FileSavePicker();
+        InitializeWithWindow.Initialize(savePicker, GetHandle());
+
+        savePicker.SuggestedFileName = suggestedFileName ?? string.Empty;
+        savePicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+
+        foreach (var category in fileTypes.GroupBy(x => x.Description))
+        {
+            savePicker.FileTypeChoices.Add(category.Key, category.Select(x => x.Extension).ToArray());
+        }
+
+        var file = await savePicker.PickSaveFileAsync();
+        return file?.Path;
     }
 
     public async Task<IList<MediaItem>> LoadMediaItems(IEnumerable<string> fileNames)
@@ -89,16 +144,8 @@ class FileService : IFileService
         return mediaItems;
     }
 
-    public async Task<IList<string>> PickMultipleFilesAsync()
+    private nint GetHandle()
     {
-        var openPicker = new FileOpenPicker();
-        WinRT.Interop.InitializeWithWindow.Initialize(openPicker, app.Handle);
-
-        openPicker.ViewMode = PickerViewMode.Thumbnail;
-        openPicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
-        openPicker.FileTypeFilter.Add(".mp3");
-
-        var files = await openPicker.PickMultipleFilesAsync();
-        return files?.Select(x => x.Path).ToArray() ?? [];
+        return serviceProvider.GetRequiredKeyedService<IAppWindow>("Main").Handle;
     }
 }

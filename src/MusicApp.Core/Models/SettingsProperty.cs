@@ -16,26 +16,33 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services;
+namespace MusicApp.Core.Models;
 
-using System.Collections.Immutable;
-using MusicApp.Core.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reactive.Subjects;
+using System.Text;
+using System.Threading.Tasks;
 
-public interface IFileService
+
+public class SettingsProperty<T> : IObservable<T>
 {
-    string ApplicationPath { get; }
+    private readonly BehaviorSubject<T> subject;
 
-    string UserDataPath { get; }
+    public SettingsProperty(T defaultValue)
+    {
+        subject = new BehaviorSubject<T>(defaultValue);
+    }
 
-    Stream? ReadUserFile(string fileName);
+    public T Value
+    {
+        get => subject.Value;
+        set => subject.OnNext(value);
+    }
 
-    Stream WriteUserFile(string fileName, bool overwrite);
-
-    Task<IList<string>> PickFilesForOpenAsync(IImmutableList<FileType> fileTypes);
-
-    Task<string?> PickFileForOpenAsync(IImmutableList<FileType> fileTypes);
-
-    Task<string?> PickFileForSaveAsync(IImmutableList<FileType> fileTypes, string? suggestedFileName = null);
-
-    Task<IList<MediaItem>> LoadMediaItems(IEnumerable<string> fileNames);
+    public IDisposable Subscribe(IObserver<T> observer)
+    {
+        return subject.Subscribe(observer);
+    }
 }

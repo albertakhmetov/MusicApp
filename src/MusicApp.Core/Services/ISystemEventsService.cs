@@ -18,24 +18,8 @@
  */
 namespace MusicApp.Core.Services;
 
-using System.Collections.Immutable;
-using MusicApp.Core.Models;
-
-public interface IFileService
+public interface ISystemEventsService
 {
-    string ApplicationPath { get; }
-
-    string UserDataPath { get; }
-
-    Stream? ReadUserFile(string fileName);
-
-    Stream WriteUserFile(string fileName, bool overwrite);
-
-    Task<IList<string>> PickFilesForOpenAsync(IImmutableList<FileType> fileTypes);
-
-    Task<string?> PickFileForOpenAsync(IImmutableList<FileType> fileTypes);
-
-    Task<string?> PickFileForSaveAsync(IImmutableList<FileType> fileTypes, string? suggestedFileName = null);
-
-    Task<IList<MediaItem>> LoadMediaItems(IEnumerable<string> fileNames);
+    IObservable<bool> AppDarkTheme { get; }
+    IObservable<bool> SystemDarkTheme { get; }
 }

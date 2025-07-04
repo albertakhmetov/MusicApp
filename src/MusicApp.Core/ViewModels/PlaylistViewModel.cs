@@ -36,6 +36,8 @@ using MusicApp.Core.Services;
 public class PlaylistViewModel : ViewModel, IDisposable
 {
     private readonly CompositeDisposable disposable = [];
+
+    private readonly IAppService appService;
     private readonly IPlaybackService playbackService;
     private readonly IFileService fileService;
     private readonly IAppCommandManager appCommandManager;
@@ -45,13 +47,16 @@ public class PlaylistViewModel : ViewModel, IDisposable
     private bool isShuffleMode, isRepeatMode;
 
     public PlaylistViewModel(
+        IAppService appService,
         IPlaybackService playbackService,
         IFileService fileService,
         IAppCommandManager appCommandManager)
     {
+        ArgumentNullException.ThrowIfNull(appService);
         ArgumentNullException.ThrowIfNull(playbackService);
         ArgumentNullException.ThrowIfNull(appCommandManager);
 
+        this.appService = appService;
         this.playbackService = playbackService;
         this.fileService = fileService;
         this.appCommandManager = appCommandManager;
@@ -186,7 +191,7 @@ public class PlaylistViewModel : ViewModel, IDisposable
 
     private async void SelectAndAddItemsAsync()
     {
-        var selectedFiles = await fileService.PickMultipleFilesAsync();
+        var selectedFiles = await fileService.PickFilesForOpenAsync(appService.SupportedFileTypes);
 
         if (selectedFiles?.Any() != true)
         {

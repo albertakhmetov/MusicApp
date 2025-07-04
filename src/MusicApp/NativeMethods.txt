@@ -4,3 +4,9 @@ GetDpiForMonitor
 
 GetTickCount
 GetDoubleClickTime
+
+RegisterClass
+UnregisterClass
+CreateWindowEx
+DestroyWindow
+DefWindowProc

@@ -23,12 +23,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MusicApp.Core.Models;
 
-public interface IApp
+public interface ISettingsService
 {
-    nint Handle { get; }
-
-    void ShowSettings();
-
-    void Exit();
+    SettingsProperty<WindowTheme> WindowTheme { get; }
 }
