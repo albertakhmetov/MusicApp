@@ -37,33 +37,47 @@ using System.Threading.Tasks;
 internal class KeeperService : IHostedService
 {
     private const string PLAYLIST_FILENAME = "playlist.json";
+    private const string SETTINGS_FILENAME = "settings.json";
 
     private readonly CompositeDisposable disposable = [];
     private readonly IPlaybackService playbackService;
+    private readonly ISettingsService settingsService;
     private readonly IFileService fileService;
 
-    public KeeperService(IPlaybackService playbackService, IFileService fileService)
+    public KeeperService(IPlaybackService playbackService, ISettingsService settingsService, IFileService fileService)
     {
         ArgumentNullException.ThrowIfNull(playbackService);
+        ArgumentNullException.ThrowIfNull(settingsService);
         ArgumentNullException.ThrowIfNull(fileService);
 
         this.playbackService = playbackService;
+        this.settingsService = settingsService;
         this.fileService = fileService;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        await LoadState();
+        LoadSettings();
+
+        await LoadPlaylist();
 
         playbackService
             .Items
             .CombineLatest(playbackService.ShuffledItems, playbackService.MediaItem, playbackService.ShuffleMode, playbackService.RepeatMode)
             .Throttle(TimeSpan.FromMilliseconds(500))
-            .Subscribe(x => SaveState(playbackService.Items.List, x.Second, x.Third, x.Fourth, x.Fifth))
+            .Subscribe(x => SavePlaylist(playbackService.Items.List, x.Second, x.Third, x.Fourth, x.Fifth))
+            .DisposeWith(disposable);
+
+        settingsService.WindowTheme
+            .DistinctUntilChanged()
+            .Select(x => true)
+            .Throttle(TimeSpan.FromMilliseconds(500))
+            .Skip(1)
+            .Subscribe(_ => SaveSettings())
             .DisposeWith(disposable);
     }
 
-    private async Task LoadState()
+    private async Task LoadPlaylist()
     {
         using var stream = fileService.ReadUserFile(PLAYLIST_FILENAME);
 
@@ -72,7 +86,7 @@ internal class KeeperService : IHostedService
             return;
         }
 
-        var stateLoader = await StateLoader.Load(fileService, stream);
+        var stateLoader = await PlaylistLoader.Load(fileService, stream);
 
         await playbackService.Items.SetAsync(stateLoader.Items ?? []);
 
@@ -89,7 +103,7 @@ internal class KeeperService : IHostedService
         }
     }
 
-    private void SaveState(
+    private void SavePlaylist(
         IImmutableList<MediaItem> items,
         IImmutableList<MediaItem> shuffledItems,
         MediaItem currentItem,
@@ -103,20 +117,61 @@ internal class KeeperService : IHostedService
 
         writer.WriteStartObject();
 
-        writer.WriteStartArray(nameof(StateLoader.Items));
+        writer.WriteStartArray(nameof(PlaylistLoader.Items));
         items.ForEach(x => writer.WriteStringValue(x.FileName));
         writer.WriteEndArray();
 
-        writer.WriteStartArray(nameof(StateLoader.ShuffledItems));
+        writer.WriteStartArray(nameof(PlaylistLoader.ShuffledItems));
         shuffledItems.ForEach(x => writer.WriteNumberValue(items.IndexOf(x)));
         writer.WriteEndArray();
 
-        writer.WriteNumber(nameof(StateLoader.CurrentItem), items.IndexOf(currentItem));
-        writer.WriteBoolean(nameof(StateLoader.ShuffleMode), shuffleMode);
-        writer.WriteBoolean(nameof(StateLoader.RepeatMode), repeatMode);
+        writer.WriteNumber(nameof(PlaylistLoader.CurrentItem), items.IndexOf(currentItem));
+        writer.WriteBoolean(nameof(PlaylistLoader.ShuffleMode), shuffleMode);
+        writer.WriteBoolean(nameof(PlaylistLoader.RepeatMode), repeatMode);
 
         writer.WriteEndObject();
 
+    }
+
+    private void LoadSettings()
+    {
+        using var stream = fileService.ReadUserFile(SETTINGS_FILENAME);
+
+        if (stream is null)
+        {
+            return;
+        }
+
+        try
+        {
+            var node = JsonNode.Parse(stream);
+
+            var windowThemeNode = node?[nameof(ISettingsService.WindowTheme)];
+            if (windowThemeNode?.GetValueKind() == JsonValueKind.String
+                && Enum.TryParse<WindowTheme>(windowThemeNode.GetValue<string>(), out var windowTheme))
+            {
+                settingsService.WindowTheme.Value = windowTheme;
+            }
+        }
+        catch (JsonException)
+        {
+        }
+    }
+
+    private void SaveSettings()
+    {
+        using var stream = fileService.WriteUserFile(SETTINGS_FILENAME, overwrite: true);
+
+        var windowTheme = settingsService.WindowTheme.Value;
+
+        var options = new JsonWriterOptions { Indented = true };
+        using var writer = new Utf8JsonWriter(stream, options);
+
+        writer.WriteStartObject();
+
+        writer.WriteString(nameof(ISettingsService.WindowTheme), windowTheme.ToString());
+
+        writer.WriteEndObject();
     }
 
     public Task StopAsync(CancellationToken cancellationToken)
@@ -129,21 +184,21 @@ internal class KeeperService : IHostedService
         return Task.CompletedTask;
     }
 
-    private class StateLoader
+    private class PlaylistLoader
     {
         private readonly IFileService fileService;
         private JsonNode? node;
 
-        public static async Task<StateLoader> Load(IFileService fileService, Stream stream)
+        public static async Task<PlaylistLoader> Load(IFileService fileService, Stream stream)
         {
-            var loader = new StateLoader(fileService);
+            var loader = new PlaylistLoader(fileService);
 
             await loader.Load(stream);
 
             return loader;
         }
 
-        private StateLoader(IFileService fileService)
+        private PlaylistLoader(IFileService fileService)
         {
             ArgumentNullException.ThrowIfNull(fileService);
 

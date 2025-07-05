@@ -247,22 +247,15 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
     private void InitSubscriptions()
     {
-        if (SynchronizationContext.Current == null)
-        {
-            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
-        }
-
         Observable
             .FromEventPattern<object>(mediaPlayer, nameof(MediaPlayer.VolumeChanged))
             .Select(x => Convert.ToInt32(mediaPlayer.Volume * 100))
             .Where(x => x >= 0)
-            .ObserveOn(SynchronizationContext.Current)
             .Subscribe(x => volumeSubject.OnNext(x))
             .DisposeWith(disposable);
 
         Observable
             .FromEventPattern<object>(mediaPlayer, nameof(MediaPlayer.CurrentStateChanged))
-            .ObserveOn(SynchronizationContext.Current)
             .Subscribe(_ => playbackStateSubject.OnNext(GetPlaybackState()))
             .DisposeWith(disposable);
 
@@ -270,7 +263,6 @@ internal class PlaybackService : IPlaybackService, IDisposable
             .FromEventPattern<CurrentMediaPlaybackItemChangedEventArgs>(playbackList, nameof(MediaPlaybackList.CurrentItemChanged))
             .Select(x => x.EventArgs.NewItem)
             .Where(x => x != null)
-            .ObserveOn(SynchronizationContext.Current)
             .Subscribe(async x => await SetCurrentPlaybackItem(x))
             .DisposeWith(disposable);
     }

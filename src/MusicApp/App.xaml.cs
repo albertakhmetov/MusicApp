@@ -45,32 +45,39 @@ public partial class App : Application
     {
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
-        Start(_ =>
+        host = CreateHost();
+
+        var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+
+        lifetime.ApplicationStopping.Register(() => instance?.Exit());
+        lifetime.ApplicationStarted.Register(() => Start(_ =>
         {
             var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
             SynchronizationContext.SetSynchronizationContext(context);
 
-            instance = new App(args);
-        });
+            instance = new App(host.Services, args);
+        }));
 
-        instance?.host?.StopAsync().Wait();
-        instance?.host?.Dispose();
+        host.Run();
     }
 
     private static App? instance;
+    private static IHost? host;
+
+    private readonly IServiceProvider serviceProvider;
 
     private readonly ImmutableArray<string> arguments;
-    private IHost? host;
     private IAppWindow? mainWindow;
 
-    public App(string[] args)
+    public App(IServiceProvider serviceProvider, string[] args)
     {
-        host = CreateHost();
-        this.arguments = ImmutableArray.Create(args);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
+
+        this.serviceProvider = serviceProvider;
 
         InitializeComponent();
 
-        var theme = host.Services.GetRequiredService<ISettingsService>().WindowTheme.Value;
+        var theme = serviceProvider.GetRequiredService<ISettingsService>().WindowTheme.Value;
 
         switch (theme)
         {
@@ -88,13 +95,13 @@ public partial class App : Application
     {
         base.OnLaunched(args);
 
-        mainWindow = host.Services.GetRequiredKeyedService<IAppWindow>("Main");
+        mainWindow = serviceProvider.GetRequiredKeyedService<IAppWindow>("Main");
         mainWindow.Show();
 
-        _ = host.RunAsync();
+        //   _ = host.RunAsync();
     }
 
-    private IHost CreateHost()
+    private static IHost CreateHost()
     {
         var builder = Host.CreateApplicationBuilder();
 

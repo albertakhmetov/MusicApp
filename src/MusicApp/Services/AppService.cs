@@ -36,6 +36,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Data;
+using Microsoft.Extensions.Hosting;
 
 internal class AppService : IAppService
 {
@@ -78,7 +79,7 @@ internal class AppService : IAppService
 
     public void Exit()
     {
-        App.Current.Exit();
+        serviceProvider.GetRequiredService<IHostApplicationLifetime>().StopApplication();
     }
 
     private AppInfo LoadAppInfo()
