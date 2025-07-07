@@ -37,15 +37,17 @@ using MusicApp.Services;
 using WinRT.Interop;
 using MusicApp.Service;
 using MusicApp.Core.Models;
+using System.Runtime.InteropServices;
 
 public partial class App : Application
 {
     [STAThread]
     public static void Main(string[] args)
     {
+        XamlCheckProcessRequirements();
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
-        host = CreateHost();
+        using var host = CreateHost();
 
         var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
 
@@ -62,7 +64,6 @@ public partial class App : Application
     }
 
     private static App? instance;
-    private static IHost? host;
 
     private readonly IServiceProvider serviceProvider;
 
@@ -97,8 +98,6 @@ public partial class App : Application
 
         mainWindow = serviceProvider.GetRequiredKeyedService<IAppWindow>("Main");
         mainWindow.Show();
-
-        //   _ = host.RunAsync();
     }
 
     private static IHost CreateHost()
@@ -128,4 +127,7 @@ public partial class App : Application
 
         return builder.Build();
     }
+
+    [DllImport("Microsoft.ui.xaml.dll")]
+    private static extern void XamlCheckProcessRequirements();
 }
