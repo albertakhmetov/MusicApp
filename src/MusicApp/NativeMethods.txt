@@ -10,3 +10,10 @@ UnregisterClass
 CreateWindowEx
 DestroyWindow
 DefWindowProc
+
+
+ITaskbarList3
+CreateIconFromResourceEx
+
+SetWindowLongPtr
+CallWindowProc

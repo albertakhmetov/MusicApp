@@ -44,26 +44,36 @@ public partial class MainWindow : Window, IAppWindow
     private readonly CompositeDisposable disposable = [];
     private readonly ISettingsService settingsService;
     private readonly ISystemEventsService systemEventsService;
+    private readonly IPlaybackService playbackService;
+
+    private readonly TaskbarHelper taskbarHelper;
+    private readonly TaskbarButtons taskbarButtons;
 
     public MainWindow(
         IAppService appService,
         ISettingsService settingsService,
         ISystemEventsService systemEventsService,
+        IPlaybackService playbackService,
         PlayerViewModel playerViewModel,
         PlaylistViewModel playlistViewModel)
     {
-        ArgumentNullException.ThrowIfNull(appService); 
+        ArgumentNullException.ThrowIfNull(appService);
         ArgumentNullException.ThrowIfNull(settingsService);
         ArgumentNullException.ThrowIfNull(systemEventsService);
+        ArgumentNullException.ThrowIfNull(playbackService);
         ArgumentNullException.ThrowIfNull(playerViewModel);
         ArgumentNullException.ThrowIfNull(playlistViewModel);
 
         this.settingsService = settingsService;
         this.systemEventsService = systemEventsService;
+        this.playbackService = playbackService;
 
         AppService = appService;
         PlayerViewModel = playerViewModel;
         PlaylistViewModel = playlistViewModel;
+
+        taskbarHelper = new TaskbarHelper(this).DisposeWith(disposable);
+        taskbarButtons = new TaskbarButtons(this).DisposeWith(disposable);
 
         MinimizeCommand = new RelayCommand(_ => this.Minimize());
         CloseCommand = new RelayCommand(_ => this.Close());
@@ -81,9 +91,10 @@ public partial class MainWindow : Window, IAppWindow
 
         AppWindow.SetPresenter(presenter);
 
-      //  Closed += (_, _) => AppService.Exit();
+        //  Closed += (_, _) => AppService.Exit();
 
         AppWindow.Resize(AppWindow.Size);
+
 
         Closed += OnClosed;
         InitSubscriptions();
@@ -212,5 +223,113 @@ public partial class MainWindow : Window, IAppWindow
     private void OnDropped(object sender, EventArgs e)
     {
         DragTarget.Visibility = Visibility.Collapsed;
+    }
+
+    private sealed class TaskbarButtons : IDisposable
+    {
+        private readonly CompositeDisposable disposable = [];
+
+        private readonly MainWindow window;
+        private readonly TaskbarHelper.Button previousButton, nextButton, togglePlayButton;
+        private IconNative? previousIcon, nextIcon, playIcon, pauseIcon;
+
+        public TaskbarButtons(MainWindow window)
+        {
+            ArgumentNullException.ThrowIfNull(window);
+            this.window = window;
+
+            previousButton = window.taskbarHelper.AddButton(nameof(previousButton));
+            previousButton.Command = new RelayCommand(_ => window.playbackService.GoPrevious());
+
+            togglePlayButton = window.taskbarHelper.AddButton(nameof(togglePlayButton));
+            togglePlayButton.Command = new RelayCommand(_ => window.playbackService.TogglePlayback());
+
+            nextButton = window.taskbarHelper.AddButton(nameof(nextButton));
+            nextButton.Command = new RelayCommand(_ => window.playbackService.GoNext());
+
+            InitSubscriptions();
+        }
+
+        public void Dispose()
+        {
+            if (disposable.IsDisposed is false)
+            {
+                disposable.Dispose();
+            }
+        }
+
+        private void InitSubscriptions()
+        {
+            if (SynchronizationContext.Current == null)
+            {
+                throw new InvalidOperationException("SynchronizationContext.Current can't be null");
+            }
+
+            window.systemEventsService
+                .SystemDarkTheme
+                .ObserveOn(SynchronizationContext.Current)
+                .Subscribe(isDarkTheme => LoadIcons(isDarkTheme))
+                .DisposeWith(disposable);
+
+            window.playbackService
+                .State
+                .Select(x => x == PlaybackState.Paused)
+                .Throttle(TimeSpan.FromMilliseconds(150))
+                .DistinctUntilChanged()
+                .ObserveOn(SynchronizationContext.Current)
+                .Subscribe(isPaused => togglePlayButton.Icon = isPaused ? playIcon?[7] : pauseIcon?[7])
+                .DisposeWith(disposable);
+
+            window.playbackService
+                .State
+                .Select(x => x == PlaybackState.Paused || x == PlaybackState.Playing)
+                .Throttle(TimeSpan.FromMilliseconds(150))
+                .DistinctUntilChanged()
+                .ObserveOn(SynchronizationContext.Current)
+                .Subscribe(isActivePlayback => togglePlayButton.IsEnabled = isActivePlayback)
+                .DisposeWith(disposable);
+
+            window.playbackService
+                .CanGoPrevious
+                .Throttle(TimeSpan.FromMilliseconds(150))
+                .DistinctUntilChanged()
+                .ObserveOn(SynchronizationContext.Current)
+                .Subscribe(canGoPrevious => previousButton.IsEnabled = canGoPrevious)
+                .DisposeWith(disposable);
+
+            window.playbackService
+                .CanGoNext
+                .Throttle(TimeSpan.FromMilliseconds(150))
+                .DistinctUntilChanged()
+                .ObserveOn(SynchronizationContext.Current)
+                .Subscribe(canGoNext => nextButton.IsEnabled = canGoNext)
+                .DisposeWith(disposable);
+        }
+
+        private async void LoadIcons(bool isDarkTheme)
+        {
+            previousIcon = Load(isDarkTheme ? "Dark.Previous" : "Light.Previous");
+            nextIcon = Load(isDarkTheme ? "Dark.Next" : "Light.Next");
+            playIcon = Load(isDarkTheme ? "Dark.Play" : "Light.Play");
+            pauseIcon = Load(isDarkTheme ? "Dark.Pause" : "Light.Pause");
+
+            var isPaused = await window.playbackService.State.FirstAsync() == PlaybackState.Paused;
+
+            previousButton.Icon = previousIcon?[7];
+            nextButton.Icon = nextIcon?[7];
+            togglePlayButton.Icon = isPaused ? pauseIcon[7] : playIcon?[7];
+        }
+
+        private IconNative Load(string name)
+        {
+            using var stream = typeof(MainWindow).Assembly.GetManifestResourceStream($"MusicApp.Assets.{name}.ico");
+
+            if (stream == null)
+            {
+                throw new InvalidOperationException($"Can't load {name} icon");
+            }
+
+            return new IconNative(stream);
+        }
     }
 }

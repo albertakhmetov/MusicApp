@@ -52,9 +52,31 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Content Remove="Assets\Dark.Next.ico" />
+	  <Content Remove="Assets\Dark.Pause.ico" />
+	  <Content Remove="Assets\Dark.Play.ico" />
+	  <Content Remove="Assets\Dark.Previous.ico" />
+	  <Content Remove="Assets\Light.Next.ico" />
+	  <Content Remove="Assets\Light.Pause.ico" />
+	  <Content Remove="Assets\Light.Play.ico" />
+	  <Content Remove="Assets\Light.Previous.ico" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <None Remove="Controls\DragTargetControl.xaml" />
 	  <None Remove="Styles.xaml" />
 	  <None Remove="Views\SettingsWindow.xaml" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="Assets\Dark.Next.ico" />
+	  <EmbeddedResource Include="Assets\Dark.Pause.ico" />
+	  <EmbeddedResource Include="Assets\Dark.Play.ico" />
+	  <EmbeddedResource Include="Assets\Dark.Previous.ico" />
+	  <EmbeddedResource Include="Assets\Light.Next.ico" />
+	  <EmbeddedResource Include="Assets\Light.Pause.ico" />
+	  <EmbeddedResource Include="Assets\Light.Play.ico" />
+	  <EmbeddedResource Include="Assets\Light.Previous.ico" />
 	</ItemGroup>
 
 	<ItemGroup>
