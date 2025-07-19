@@ -38,8 +38,6 @@ using MusicApp.Helpers;
 using Windows.ApplicationModel.Chat;
 using Windows.ApplicationModel.DataTransfer;
 using WinRT.Interop;
-using Windows.Win32;
-using Windows.Win32.UI.WindowsAndMessaging;
 using Microsoft.UI;
 
 public partial class MainWindow : Window, IAppWindow
@@ -279,10 +277,14 @@ public partial class MainWindow : Window, IAppWindow
                 throw new InvalidOperationException("SynchronizationContext.Current can't be null");
             }
 
-            window.systemEventsService
-                .SystemDarkTheme
+            Observable
+                .CombineLatest(
+                    window.systemEventsService.SystemDarkTheme,
+                    window.systemEventsService.IconWidth,
+                    window.systemEventsService.IconHeight,
+                    (IsDarkTheme, IconWidth, IconHeight) => new { IsDarkTheme, IconWidth, IconHeight })
                 .ObserveOn(SynchronizationContext.Current)
-                .Subscribe(isDarkTheme => LoadIcons(isDarkTheme))
+                .Subscribe(x => LoadIcons(x.IsDarkTheme, x.IconWidth, x.IconHeight))
                 .DisposeWith(disposable);
 
             window.playbackService
@@ -324,7 +326,7 @@ public partial class MainWindow : Window, IAppWindow
                 .DisposeWith(disposable);
         }
 
-        private async void LoadIcons(bool isDarkTheme)
+        private async void LoadIcons(bool isDarkTheme, int iconWidth, int iconHeight)
         {
             previousIcon = Load(isDarkTheme ? "Dark.Previous" : "Light.Previous");
             nextIcon = Load(isDarkTheme ? "Dark.Next" : "Light.Next");
@@ -333,11 +335,9 @@ public partial class MainWindow : Window, IAppWindow
 
             var isPaused = await window.playbackService.State.FirstAsync() == PlaybackState.Paused;
 
-            var iconWidth = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXICON);
-
-            previousButton.Icon = previousIcon?.ResolveFrame(iconWidth);
-            nextButton.Icon = nextIcon?.ResolveFrame(iconWidth);
-            togglePlayButton.Icon = (isPaused ? playIcon : pauseIcon)?.ResolveFrame(iconWidth);
+            previousButton.Icon = previousIcon?.ResolveFrame(iconWidth, iconHeight);
+            nextButton.Icon = nextIcon?.ResolveFrame(iconWidth, iconHeight);
+            togglePlayButton.Icon = (isPaused ? playIcon : pauseIcon)?.ResolveFrame(iconWidth, iconHeight);
         }
 
         private IconNative Load(string name)

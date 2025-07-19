@@ -24,6 +24,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.UI.Xaml.Hosting;
 using Windows.ApplicationModel.Activation;
 using Windows.Win32;
 using Windows.Win32.Foundation;
@@ -34,7 +35,7 @@ public class IconNative
     private const int ICON_DIR_SIZE = 6;
     private const int ICON_DIR_ENTRY_SIZE = 16;
     private readonly byte[] buffer;
-    private readonly int[] widths;
+    private readonly IconSize[] iconSizes;
 
     public IconNative(Stream stream)
     {
@@ -49,7 +50,7 @@ public class IconNative
             throw new ArgumentException("Stream doesn't contain icons");
         }
 
-        widths = new int[count];
+        iconSizes = new IconSize[count];
         for (var frameId = 0; frameId < count; frameId++)
         {
             var entryBuffer = buffer
@@ -57,35 +58,40 @@ public class IconNative
                 .Slice(ICON_DIR_SIZE)
                 .Slice(ICON_DIR_ENTRY_SIZE * frameId, ICON_DIR_ENTRY_SIZE);
 
-            widths[frameId] = entryBuffer[0] == 0 ? 256 : entryBuffer[0];
+            iconSizes[frameId] = new IconSize(
+                entryBuffer[0] == 0 ? 256 : entryBuffer[0],
+                entryBuffer[1] == 0 ? 256 : entryBuffer[1]);
         }
     }
 
-    public int Count => widths.Length;
+    public int Count => iconSizes.Length;
 
     public SafeHandle this[int frameId]
     {
         get => GetFrame(frameId);
     }
 
-    public SafeHandle ResolveFrame(int destWidth)
+    public SafeHandle ResolveFrame(int iconWidth, int iconHeight)
     {
-        var bestWidth = default(int?);
+        var destSize = new IconSize(iconWidth, iconHeight);
+
+        var bestSize = default(IconSize);
         var bestFrameId = default(int?);
 
         for (var frameId = 0; frameId < Count; frameId++)
         {
-            if (widths[frameId] >= destWidth && (bestWidth.HasValue is false || widths[frameId] < bestWidth.Value))
+            var size = iconSizes[frameId];
+            if (size.CompareTo(destSize) >= 0 && (bestSize is null || size.CompareTo(bestSize) < 0))
             {
-                bestWidth = widths[frameId];
+                bestSize = size;
                 bestFrameId = frameId;
             }
         }
 
         if (bestFrameId is null)
         {
-            var max = widths.Max();
-            return GetFrame(Array.IndexOf(widths, max));
+            var max = iconSizes.Max();
+            return GetFrame(Array.IndexOf(iconSizes, max));
         }
         else
         {
@@ -115,5 +121,25 @@ public class IconNative
             0,
             0,
             0);
+    }
+
+    private record IconSize(int Width, int Height) : IComparable<IconSize>
+    {
+        public int CompareTo(IconSize? other)
+        {
+            if (other == null)
+            {
+                return 1;
+            }
+
+            if (Width == other.Width)
+            {
+                return Height.CompareTo(other.Height);
+            }
+            else
+            {
+                return Width.CompareTo(other.Width);
+            }
+        }
     }
 }

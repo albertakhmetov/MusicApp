@@ -38,6 +38,7 @@ public class SystemEventsService : IDisposable, ISystemEventsService
 
     private readonly NativeWindow window;
     private readonly BehaviorSubject<bool> appDarkThemeSubject, systemDarkThemeSubject;
+    private readonly BehaviorSubject<int> iconWidthSubject, iconHeightSubject;
 
     private bool isDisposed = false;
 
@@ -47,14 +48,23 @@ public class SystemEventsService : IDisposable, ISystemEventsService
 
         appDarkThemeSubject = new BehaviorSubject<bool>(ShouldAppsUseDarkMode());
         systemDarkThemeSubject = new BehaviorSubject<bool>(ShouldSystemUseDarkMode());
+        iconWidthSubject = new BehaviorSubject<int>(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXICON));
+        iconHeightSubject = new BehaviorSubject<int>(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYICON));
 
         AppDarkTheme = appDarkThemeSubject.AsObservable();
         SystemDarkTheme = systemDarkThemeSubject.AsObservable();
+
+        IconWidth = iconWidthSubject.AsObservable();
+        IconHeight = iconHeightSubject.AsObservable();
     }
 
     public IObservable<bool> AppDarkTheme { get; }
 
     public IObservable<bool> SystemDarkTheme { get; }
+
+    public IObservable<int> IconWidth { get; }
+
+    public IObservable<int> IconHeight { get; }
 
     public void Dispose()
     {
