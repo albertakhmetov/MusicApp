@@ -183,7 +183,6 @@ internal class TaskbarHelper : IDisposable
         var thumbButtons = PrepareThumbButtons(buttons);
 
         taskbarList.Value.ThumbBarUpdateButtons(hWnd, thumbButtons.AsSpan());
-
     }
 
     private static THUMBBUTTON[] PrepareThumbButtons(IList<Button> buttons)
@@ -196,7 +195,7 @@ internal class TaskbarHelper : IDisposable
             {
                 dwMask = THUMBBUTTONMASK.THB_FLAGS | THUMBBUTTONMASK.THB_ICON | THUMBBUTTONMASK.THB_TOOLTIP,
                 iId = buttons[i].Id,
-                dwFlags = (buttons[i].IsEnabled ? THUMBBUTTONFLAGS.THBF_ENABLED : THUMBBUTTONFLAGS.THBF_DISABLED) | THUMBBUTTONFLAGS.THBF_DISMISSONCLICK,
+                dwFlags = (buttons[i].IsEnabled ? THUMBBUTTONFLAGS.THBF_ENABLED : THUMBBUTTONFLAGS.THBF_DISABLED),
                 hIcon = (HICON)(buttons[i].Icon?.DangerousGetHandle() ?? nint.Zero),
                 szTip = buttons[i].ToolTip ?? string.Empty
             };

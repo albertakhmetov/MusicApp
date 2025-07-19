@@ -1,6 +1,7 @@
 ShowWindow
 MonitorFromWindow
 GetDpiForMonitor
+EnumDisplayMonitors
 
 GetTickCount
 GetDoubleClickTime
@@ -14,6 +15,7 @@ DefWindowProc
 
 ITaskbarList3
 CreateIconFromResourceEx
+GetSystemMetrics
 
 SetWindowLongPtr
 CallWindowProc

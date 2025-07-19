@@ -24,6 +24,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.ApplicationModel.Activation;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
@@ -33,6 +34,7 @@ public class IconNative
     private const int ICON_DIR_SIZE = 6;
     private const int ICON_DIR_ENTRY_SIZE = 16;
     private readonly byte[] buffer;
+    private readonly int[] widths;
 
     public IconNative(Stream stream)
     {
@@ -41,14 +43,54 @@ public class IconNative
         buffer = new byte[Convert.ToInt32(stream.Length)];
         stream.ReadExactly(buffer);
 
-        Count = BitConverter.ToUInt16(buffer.AsSpan().Slice(sizeof(ushort) * 2, sizeof(ushort)));
+        var count = BitConverter.ToUInt16(buffer.AsSpan().Slice(sizeof(ushort) * 2, sizeof(ushort)));
+        if (count == 0)
+        {
+            throw new ArgumentException("Stream doesn't contain icons");
+        }
+
+        widths = new int[count];
+        for (var frameId = 0; frameId < count; frameId++)
+        {
+            var entryBuffer = buffer
+                .AsSpan()
+                .Slice(ICON_DIR_SIZE)
+                .Slice(ICON_DIR_ENTRY_SIZE * frameId, ICON_DIR_ENTRY_SIZE);
+
+            widths[frameId] = entryBuffer[0] == 0 ? 256 : entryBuffer[0];
+        }
     }
 
-    public int Count { get; }
+    public int Count => widths.Length;
 
     public SafeHandle this[int frameId]
     {
         get => GetFrame(frameId);
+    }
+
+    public SafeHandle ResolveFrame(int destWidth)
+    {
+        var bestWidth = default(int?);
+        var bestFrameId = default(int?);
+
+        for (var frameId = 0; frameId < Count; frameId++)
+        {
+            if (widths[frameId] >= destWidth && (bestWidth.HasValue is false || widths[frameId] < bestWidth.Value))
+            {
+                bestWidth = widths[frameId];
+                bestFrameId = frameId;
+            }
+        }
+
+        if (bestFrameId is null)
+        {
+            var max = widths.Max();
+            return GetFrame(Array.IndexOf(widths, max));
+        }
+        else
+        {
+            return GetFrame(bestFrameId.Value);
+        }
     }
 
     private SafeHandle GetFrame(int frameId)

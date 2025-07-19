@@ -38,11 +38,15 @@ using MusicApp.Helpers;
 using Windows.ApplicationModel.Chat;
 using Windows.ApplicationModel.DataTransfer;
 using WinRT.Interop;
+using Windows.Win32;
+using Windows.Win32.UI.WindowsAndMessaging;
+using Microsoft.UI;
 
 public partial class MainWindow : Window, IAppWindow
 {
     private readonly CompositeDisposable disposable = [];
     private readonly ISettingsService settingsService;
+    private readonly IFileService fileService;
     private readonly ISystemEventsService systemEventsService;
     private readonly IPlaybackService playbackService;
 
@@ -52,6 +56,7 @@ public partial class MainWindow : Window, IAppWindow
     public MainWindow(
         IAppService appService,
         ISettingsService settingsService,
+        IFileService fileService,
         ISystemEventsService systemEventsService,
         IPlaybackService playbackService,
         PlayerViewModel playerViewModel,
@@ -59,12 +64,14 @@ public partial class MainWindow : Window, IAppWindow
     {
         ArgumentNullException.ThrowIfNull(appService);
         ArgumentNullException.ThrowIfNull(settingsService);
+        ArgumentNullException.ThrowIfNull(fileService);
         ArgumentNullException.ThrowIfNull(systemEventsService);
         ArgumentNullException.ThrowIfNull(playbackService);
         ArgumentNullException.ThrowIfNull(playerViewModel);
         ArgumentNullException.ThrowIfNull(playlistViewModel);
 
         this.settingsService = settingsService;
+        this.fileService = fileService;
         this.systemEventsService = systemEventsService;
         this.playbackService = playbackService;
 
@@ -91,10 +98,15 @@ public partial class MainWindow : Window, IAppWindow
 
         AppWindow.SetPresenter(presenter);
 
+        var icon = System.Drawing.Icon
+            .ExtractAssociatedIcon(fileService.ApplicationPath)!
+            .DisposeWith(disposable);
+        AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(icon.Handle));
+        AppWindow.Title = appService.AppInfo.ProductName;
+
         //  Closed += (_, _) => AppService.Exit();
 
         AppWindow.Resize(AppWindow.Size);
-
 
         Closed += OnClosed;
         InitSubscriptions();
@@ -239,12 +251,14 @@ public partial class MainWindow : Window, IAppWindow
             this.window = window;
 
             previousButton = window.taskbarHelper.AddButton(nameof(previousButton));
+            previousButton.ToolTip = "Previous Track";
             previousButton.Command = new RelayCommand(_ => window.playbackService.GoPrevious());
 
             togglePlayButton = window.taskbarHelper.AddButton(nameof(togglePlayButton));
             togglePlayButton.Command = new RelayCommand(_ => window.playbackService.TogglePlayback());
 
             nextButton = window.taskbarHelper.AddButton(nameof(nextButton));
+            nextButton.ToolTip = "Next Track";
             nextButton.Command = new RelayCommand(_ => window.playbackService.GoNext());
 
             InitSubscriptions();
@@ -277,7 +291,11 @@ public partial class MainWindow : Window, IAppWindow
                 .Throttle(TimeSpan.FromMilliseconds(150))
                 .DistinctUntilChanged()
                 .ObserveOn(SynchronizationContext.Current)
-                .Subscribe(isPaused => togglePlayButton.Icon = isPaused ? playIcon?[7] : pauseIcon?[7])
+                .Subscribe(isPaused =>
+                {
+                    togglePlayButton.ToolTip = isPaused ? "Play" : "Pause";
+                    togglePlayButton.Icon = isPaused ? playIcon?[7] : pauseIcon?[7];
+                })
                 .DisposeWith(disposable);
 
             window.playbackService
@@ -315,9 +333,11 @@ public partial class MainWindow : Window, IAppWindow
 
             var isPaused = await window.playbackService.State.FirstAsync() == PlaybackState.Paused;
 
-            previousButton.Icon = previousIcon?[7];
-            nextButton.Icon = nextIcon?[7];
-            togglePlayButton.Icon = isPaused ? pauseIcon[7] : playIcon?[7];
+            var iconWidth = PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXICON);
+
+            previousButton.Icon = previousIcon?.ResolveFrame(iconWidth);
+            nextButton.Icon = nextIcon?.ResolveFrame(iconWidth);
+            togglePlayButton.Icon = (isPaused ? playIcon : pauseIcon)?.ResolveFrame(iconWidth);
         }
 
         private IconNative Load(string name)

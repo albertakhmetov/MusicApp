@@ -38,9 +38,17 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Windowing;
 using System.Runtime.InteropServices;
+using System.ComponentModel;
 
 static class Extensions
 {
+    private const uint DEFAULT_DPI = 96;
+
+    public static void ThrowOnFailure(this BOOL result)
+    {
+        if (!result) throw new Win32Exception(Marshal.GetLastWin32Error());
+    }
+
     public static void Minimize(this IAppWindow window)
     {
         PInvoke.ShowWindow((HWND)window.Handle, SHOW_WINDOW_CMD.SW_MINIMIZE);
@@ -53,6 +61,53 @@ static class Extensions
         return dpiX;
     }
 
+    public static uint GetMaxDpi()
+    {
+        uint maxDpi = DEFAULT_DPI;
+        var handle = GCHandle.Alloc(maxDpi, GCHandleType.Pinned);
+
+        try
+        {
+            unsafe
+            {
+                PInvoke.EnumDisplayMonitors(
+                    hdc: HDC.Null,
+                    lprcClip: null,
+                    lpfnEnum: MonitorEnumProc,
+                    dwData: (LPARAM)GCHandle.ToIntPtr(handle))
+                    .ThrowOnFailure();
+            }
+        }
+        finally
+        {
+            maxDpi = (uint)(handle.Target ?? DEFAULT_DPI);
+            handle.Free();
+        }
+
+        return maxDpi;
+    }
+
+    private static unsafe BOOL MonitorEnumProc(HMONITOR hMonitor, HDC hdcMonitor, RECT* lprcMonitor, LPARAM dwData)
+    {
+        var handle = GCHandle.FromIntPtr((nint)dwData.Value);
+        uint maxDpi = (uint)(handle.Target ?? DEFAULT_DPI);
+
+        PInvoke.GetDpiForMonitor(
+            hMonitor,
+            MONITOR_DPI_TYPE.MDT_DEFAULT,
+            out uint dpiX,
+            out uint dpiY)
+            .ThrowOnFailure();
+
+        if (dpiX > maxDpi)
+        {
+            maxDpi = dpiX;
+            handle.Target = maxDpi;
+        }
+
+        return true;
+    }
+
     public static T? GetProperty<T>(this MediaSource? mediaSource) where T : class
     {
         return mediaSource?.CustomProperties.TryGetValue(nameof(MediaItem), out var value) == true
@@ -60,7 +115,7 @@ static class Extensions
             : null;
     }
 
-    public static void SetProperty<T>(this MediaSource mediaSource, T value) where T :class
+    public static void SetProperty<T>(this MediaSource mediaSource, T value) where T : class
     {
         ArgumentNullException.ThrowIfNull(mediaSource);
 
@@ -72,7 +127,7 @@ static class Extensions
         if (mediaFile?.IsEmpty == false)
         {
             var file = await StorageFile.GetFileFromPathAsync(mediaFile.FileName);
-           
+
             using var thumbnail = await file.GetThumbnailAsync(ThumbnailMode.MusicView, 300, ThumbnailOptions.UseCurrentScale);
 
             if (thumbnail != null && thumbnail.Type == ThumbnailType.Image)
