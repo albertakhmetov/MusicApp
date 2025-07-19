@@ -30,6 +30,7 @@ using Microsoft.Extensions.DependencyInjection;
 using MusicApp.Core.Services;
 using Windows.Win32;
 using Windows.Win32.Foundation;
+using Windows.Win32.Graphics.Gdi;
 using Windows.Win32.UI.WindowsAndMessaging;
 using Windows.Win32.UI.Shell;
 using System.Reactive.Disposables;
@@ -38,6 +39,9 @@ using MusicApp.Core.Helpers;
 using System.Windows.Input;
 using Microsoft.UI.Dispatching;
 using System.Reactive.Concurrency;
+using MusicApp.Core.Models;
+using System.Drawing;
+using Microsoft.Win32.SafeHandles;
 
 internal class TaskbarHelper : IDisposable
 {
@@ -54,6 +58,7 @@ internal class TaskbarHelper : IDisposable
     private readonly Subject<int> commandExecutionSubject;
 
     private ComObjectSafeHandle<ITaskbarList3> taskbarList;
+    private ImageData? imageData;
 
     public TaskbarHelper(IAppWindow window)
     {
@@ -79,6 +84,8 @@ internal class TaskbarHelper : IDisposable
             .ObserveOn(TaskPoolScheduler.Default)
             .Subscribe(buttonId => ExecuteCommand(buttonId))
             .DisposeWith(disposable);
+
+        this.window.SetStaticPreview();
 
         InitSubscriptions();
     }
@@ -131,6 +138,13 @@ internal class TaskbarHelper : IDisposable
         }
     }
 
+    public void SetImagePreview(ImageData imageData)
+    {
+        this.imageData = imageData;
+
+        PInvoke.DwmInvalidateIconicBitmaps((HWND)window.Handle);
+    }
+
     private LRESULT WindowProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam)
     {
         if (msg == WM_COMMAND)
@@ -140,7 +154,55 @@ internal class TaskbarHelper : IDisposable
             commandExecutionSubject.OnNext(buttonId);
         }
 
+        if(msg == PInvoke.WM_DWMSENDICONICTHUMBNAIL)
+        {
+            int width = (int)(lParam.Value >> 16);
+            int height = (int)(lParam.Value & 0xFFFF);
+
+            using var bitmap = CreateThumbnail(imageData, width, height);
+
+            using var hBitmap = new HBitmapSafeHandle(bitmap);
+
+            PInvoke.DwmSetIconicThumbnail(
+                (HWND)window.Handle,
+                hBitmap,
+                0).ThrowOnFailure();
+        }
+
+        //if(msg == PInvoke.WM_DWMSENDICONICLIVEPREVIEWBITMAP)
+        //{
+        //    using var stream = imageData?.GetStream();
+        //    using var bitmap = (Bitmap)Bitmap.FromStream(stream);
+
+        //    using var hBitmap = new HBitmapSafeHandle(bitmap);
+
+        //    PInvoke.DwmSetIconicLivePreviewBitmap(
+        //        (HWND)window.Handle,
+        //        hBitmap,
+        //        new Point(0, 0),
+        //        0).ThrowOnFailure();
+        //}
+
         return PInvoke.CallWindowProc(nativeWindowProc, hWnd, msg, wParam, lParam);
+    }
+
+    private Bitmap CreateThumbnail(ImageData? imageData, int width, int height)
+    {
+        var minSideSize = Math.Min(width, height);
+        var bitmap = new Bitmap(minSideSize, minSideSize);
+
+        if (imageData != null)
+        {
+            using var stream = imageData.GetStream();
+            using var image = Image.FromStream(stream);
+
+            using var g = Graphics.FromImage(bitmap);
+
+            g.DrawImage(image, new Rectangle(0, 0, minSideSize, minSideSize));            
+        }
+        
+
+        return bitmap;
     }
 
     private void ExecuteCommand(int buttonId)
@@ -287,6 +349,21 @@ internal class TaskbarHelper : IDisposable
         private void NotifyChanged()
         {
             taskbar.buttonChangedSubject.OnNext(this);
+        }
+    }
+
+    private class HBitmapSafeHandle : SafeHandleZeroOrMinusOneIsInvalid
+    {
+        public HBitmapSafeHandle(Bitmap bitmap) : base(true)
+        {
+            ArgumentNullException.ThrowIfNull(bitmap);
+
+            SetHandle(bitmap.GetHbitmap());
+        }
+
+        protected override bool ReleaseHandle()
+        {
+            return PInvoke.DeleteObject((HGDIOBJ)handle);
         }
     }
 

@@ -147,6 +147,12 @@ public partial class MainWindow : Window, IAppWindow
             .ObserveOn(SynchronizationContext.Current)
             .Subscribe(isDarkTheme => this.UpdateTheme(isDarkTheme))
             .DisposeWith(disposable);
+
+        playbackService
+            .MediaItemCover
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(image => taskbarHelper.SetImagePreview(image))
+            .DisposeWith(disposable);
     }
 
     private void OnClosed(object sender, WindowEventArgs args)

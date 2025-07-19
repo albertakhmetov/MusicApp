@@ -6,16 +6,25 @@ EnumDisplayMonitors
 GetTickCount
 GetDoubleClickTime
 
+// System Window
 RegisterClass
 UnregisterClass
 CreateWindowEx
 DestroyWindow
 DefWindowProc
 
-
+// Taskbar
 ITaskbarList3
 CreateIconFromResourceEx
 GetSystemMetrics
+DwmSetWindowAttribute
+DwmSetIconicThumbnail
+DwmInvalidateIconicBitmaps
+DwmSetIconicLivePreviewBitmap
+DeleteObject
+WM_DWMSENDICONICTHUMBNAIL
+WM_DWMSENDICONICLIVEPREVIEWBITMAP
 
+// Window Proc
 SetWindowLongPtr
 CallWindowProc
