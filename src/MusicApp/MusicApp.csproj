@@ -52,6 +52,8 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Content Remove="Assets\app.ico" />
+	  <Content Remove="Assets\app.png" />
 	  <Content Remove="Assets\Dark.Next.ico" />
 	  <Content Remove="Assets\Dark.Pause.ico" />
 	  <Content Remove="Assets\Dark.Play.ico" />
@@ -69,6 +71,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <EmbeddedResource Include="Assets\app.ico" />
+	  <EmbeddedResource Include="Assets\app.png" />
 	  <EmbeddedResource Include="Assets\Dark.Next.ico" />
 	  <EmbeddedResource Include="Assets\Dark.Pause.ico" />
 	  <EmbeddedResource Include="Assets\Dark.Play.ico" />

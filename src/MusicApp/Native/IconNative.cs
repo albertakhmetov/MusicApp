@@ -16,7 +16,7 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Helpers;
+namespace MusicApp.Native;
 
 using System;
 using System.Collections.Generic;

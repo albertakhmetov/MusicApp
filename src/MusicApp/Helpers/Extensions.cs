@@ -32,7 +32,6 @@ using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.HiDpi;
 using Windows.Win32.UI.WindowsAndMessaging;
-using Windows.Win32.Graphics.Dwm;
 using Windows.Win32.Graphics.Gdi;
 using Windows.UI;
 using Microsoft.UI.Xaml;
@@ -109,26 +108,6 @@ static class Extensions
         return true;
     }
 
-    public static void SetStaticPreview(this IAppWindow window)
-    {
-        BOOL fForceIconic = true;
-        BOOL fHasIconicBitmap = true;
-
-        unsafe
-        {
-            PInvoke.DwmSetWindowAttribute(
-                (HWND)window.Handle,
-                DWMWINDOWATTRIBUTE.DWMWA_FORCE_ICONIC_REPRESENTATION,
-                &fForceIconic,
-                (uint)Marshal.SizeOf<BOOL>());
-
-            PInvoke.DwmSetWindowAttribute(
-                (HWND)window.Handle,
-                DWMWINDOWATTRIBUTE.DWMWA_HAS_ICONIC_BITMAP,
-                &fHasIconicBitmap,
-                (uint)Marshal.SizeOf<BOOL>());
-        }
-    }
 
     public static T? GetProperty<T>(this MediaSource? mediaSource) where T : class
     {
