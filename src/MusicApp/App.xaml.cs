@@ -38,6 +38,7 @@ using WinRT.Interop;
 using MusicApp.Service;
 using MusicApp.Core.Models;
 using System.Runtime.InteropServices;
+using MusicApp.Helpers;
 
 public partial class App : Application
 {

@@ -1,0 +1,76 @@
+﻿/*  Copyright © 2025, Albert Akhmetov <akhmetov@live.com>   
+ *
+ *  This file is part of MusicApp.
+ *
+ *  MusicApp is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  MusicApp is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
+ *
+ */
+namespace MusicApp.Native;
+
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reactive.Disposables;
+using System.Runtime.InteropServices;
+using System.Text;
+using System.Threading.Tasks;
+using MusicApp.Core.Services;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+using Windows.Win32.UI.WindowsAndMessaging;
+
+internal sealed class WindowProc
+{
+    private readonly Dictionary<uint, IReceiver> receivers = [];
+    private readonly WNDPROC wndProc, nativeWndProc;
+    private readonly IAppWindow window;
+
+    public WindowProc(IAppWindow window)
+    {
+        ArgumentNullException.ThrowIfNull(window);
+
+        this.window = window;
+
+        wndProc = new WNDPROC(WndProc);
+        var p = PInvoke.SetWindowLongPtr(
+            hWnd: HWND,
+            nIndex: WINDOW_LONG_PTR_INDEX.GWL_WNDPROC,
+            dwNewLong: Marshal.GetFunctionPointerForDelegate(wndProc));
+        nativeWndProc = Marshal.GetDelegateForFunctionPointer<WNDPROC>(p);
+    }
+
+    public HWND HWND => (HWND)window.Handle;
+
+    public IDisposable Register(IReceiver receiver, uint msg)
+    {
+        receivers[msg] = receiver;
+
+        return Disposable.Create(() => receivers.Remove(msg));
+    }
+
+    private LRESULT WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam)
+    {
+        if (receivers.TryGetValue(msg, out var receiver))
+        {
+            return receiver.Process(msg, wParam, lParam);
+        }
+
+        return PInvoke.CallWindowProc(nativeWndProc, hWnd, msg, wParam, lParam);
+    }
+
+    public interface IReceiver
+    {
+        LRESULT Process(uint msg, WPARAM wParam, LPARAM lParam);
+    }
+}

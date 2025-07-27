@@ -21,5 +21,10 @@ namespace MusicApp.Core.Services;
 public interface ISystemEventsService
 {
     IObservable<bool> AppDarkTheme { get; }
+
     IObservable<bool> SystemDarkTheme { get; }
+
+    IObservable<int> IconWidth { get; }
+
+    IObservable<int> IconHeight { get; }
 }
