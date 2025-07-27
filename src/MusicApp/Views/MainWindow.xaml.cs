@@ -419,46 +419,41 @@ public partial class MainWindow : Window, IAppWindow
 
         private async Task OnLivePreview(Thumbnail sender, Thumbnail.PreviewEventArgs e)
         {
-            if (window.Content is Grid grid)
+            window.LiveBorder.Visibility = Visibility.Visible;
+
+            var renderTargetBitmap = new RenderTargetBitmap();
+            await renderTargetBitmap.RenderAsync(window.Content);
+
+            window.LiveBorder.Visibility = Visibility.Collapsed;
+
+            var width = renderTargetBitmap.PixelWidth;
+            var height = renderTargetBitmap.PixelHeight;
+
+            var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+
+            var bitmapData = bitmap.LockBits(
+                new Rectangle(0, 0, width, height),
+                ImageLockMode.WriteOnly,
+                PixelFormat.Format32bppArgb
+            );
+
+            var pixelData = (await renderTargetBitmap.GetPixelsAsync()).ToArray();
+
+            unsafe
             {
-                grid.Background = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 0, 0));
-                grid.CornerRadius = new CornerRadius(8);
-
-                var renderTargetBitmap = new RenderTargetBitmap();
-                await renderTargetBitmap.RenderAsync(window.Content);
-
-                grid.Background = null;
-                grid.CornerRadius = new CornerRadius(0);
-
-                var width = renderTargetBitmap.PixelWidth;
-                var height = renderTargetBitmap.PixelHeight;
-
-                var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-
-                var bitmapData = bitmap.LockBits(
-                    new Rectangle(0, 0, width, height),
-                    ImageLockMode.WriteOnly,
-                    PixelFormat.Format32bppArgb
-                );
-
-                var pixelData = (await renderTargetBitmap.GetPixelsAsync()).ToArray();
-
-                unsafe
+                byte* destPtr = (byte*)bitmapData.Scan0;
+                fixed (byte* srcPtr = pixelData)
                 {
-                    byte* destPtr = (byte*)bitmapData.Scan0;
-                    fixed (byte* srcPtr = pixelData)
+                    for (int i = 0; i < pixelData.Length; i++)
                     {
-                        for (int i = 0; i < pixelData.Length; i++)
-                        {
-                            destPtr[i] = srcPtr[i];
-                        }
+                        destPtr[i] = srcPtr[i];
                     }
                 }
-
-                bitmap.UnlockBits(bitmapData);
-
-                e.Bitmap = bitmap;
             }
+
+            bitmap.UnlockBits(bitmapData);
+
+            e.Bitmap = bitmap;
         }
 
         public void Dispose()
@@ -490,6 +485,17 @@ public partial class MainWindow : Window, IAppWindow
                 .MediaItemCover
                 .ObserveOn(SynchronizationContext.Current)
                 .Subscribe(cover => ImageData = cover)
+                .DisposeWith(disposable);
+
+            Observable
+                .CombineLatest(
+                    window.playbackService.MediaItem,
+                    window.playbackService.MediaItemCover,
+                    window.playbackService.Position,
+                    (x, y, z) => true)
+                .Throttle(TimeSpan.FromMicroseconds(150))
+                .ObserveOn(SynchronizationContext.Current)
+                .Subscribe(_ => thumbnail.Invalidate())
                 .DisposeWith(disposable);
         }
     }
