@@ -2,6 +2,7 @@
   <Configurations>
     <Platform Name="x64" />
   </Configurations>
+  <Project Path="MusicApp.Resources/MusicApp.Resources.csproj" Id="39e8054c-b5d2-4042-aa4d-8bf7b2d7bb25" />
   <Project Path="MusicApp/MusicApp.csproj">
     <Platform Project="x64" />
   </Project>

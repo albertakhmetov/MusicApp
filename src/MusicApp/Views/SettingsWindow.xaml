@@ -16,10 +16,9 @@
     <Grid VerticalAlignment="Top">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        
+
         <Grid.Resources>
             <Style TargetType="Border">
                 <Style.Setters>
@@ -28,70 +27,98 @@
                     <Setter Property="Background" Value="{ThemeResource CardBackgroundFillColorDefaultBrush}"/>
                     <Setter Property="CornerRadius" Value="4"/>
                     <Setter Property="Padding" Value="16"/>
-                    <Setter Property="Margin" Value="24,12"/>
+                    <Setter Property="Margin" Value="24,6"/>
+                    <Setter Property="MinHeight" Value="60"/>
                 </Style.Setters>
             </Style>
         </Grid.Resources>
-        
+
         <TitleBar x:Name="AppTitleBar" Title="{x:Bind Title}">
             <TitleBar.LeftHeader>
                 <FontIcon Glyph="&#xE713;" Margin="12,12,0,12"/>
             </TitleBar.LeftHeader>
         </TitleBar>
 
-        <Border Grid.Row="1">
-            <Grid MinWidth="60">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="2*"/>
-                    <ColumnDefinition Width="*"/>
-                </Grid.ColumnDefinitions>
+        <StackPanel Grid.Row="1" Orientation="Vertical">
 
-                <FontIcon 
-                    Glyph="&#xE790;" 
-                    VerticalAlignment="Center" 
-                    Margin="0,0,12,0"/>
+            <Border>
+                <Grid MinWidth="60">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <FontIcon 
+                        Glyph="&#xE790;" 
+                        VerticalAlignment="Center" 
+                        Margin="0,0,12,0"/>
+                    <TextBlock 
+                        Grid.Column="1" 
+                        VerticalAlignment="Center" 
+                        Text="Window Theme"/>
+                    <ComboBox 
+                        Grid.Column="2" 
+                        VerticalAlignment="Center" 
+                        HorizontalAlignment="Stretch"
+                        SelectedItem="{x:Bind ViewModel.WindowTheme, Mode=TwoWay}"
+                        ItemsSource="{x:Bind ViewModel.WindowThemes, Mode=OneWay}"/>
+                </Grid>
+            </Border>
+
+            <Border>
+                <Grid MinWidth="60">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <FontIcon 
+                        Glyph="&#xECAA;" 
+                        VerticalAlignment="Center" 
+                        Margin="0,0,12,0"/>
+
+                    <TextBlock Grid.Column="1" VerticalAlignment="Center"  Text="Integration with default apps"/>
+
+                    <ToggleSwitch 
+                        HorizontalAlignment="Stretch"
+                        Grid.Column="2"
+
+                        IsOn="{x:Bind ViewModel.IsAppRegistred,Mode=TwoWay}"/>
+                </Grid>
+            </Border>
+
+            <StackPanel 
+                Grid.Row="2"            
+                Orientation="Vertical"
+                Margin="24,12">
+
+                <TextBlock
+                    Style="{ThemeResource SubtitleTextBlockStyle}"
+                    Margin="4">
+                    <Run Text="{x:Bind ViewModel.ProductName}"/>
+                    <Run Text="{x:Bind ViewModel.Version}"/>
+                </TextBlock>
+
                 <TextBlock 
-                    Grid.Column="1" 
-                    VerticalAlignment="Center" 
-                    Text="Window Theme"/>
-                <ComboBox 
-                    Grid.Column="2" 
-                    VerticalAlignment="Center" 
+                    Text="{x:Bind ViewModel.LegalCopyright}"
+                    Style="{ThemeResource BodyStrongTextBlockStyle}"
+                    Margin="4"/>
+
+                <TextBlock 
+                    Text="{x:Bind ViewModel.ProductDescription}"
+                    Style="{ThemeResource BodyTextBlockStyle}"
                     HorizontalAlignment="Stretch"
-                    SelectedItem="{x:Bind ViewModel.WindowTheme, Mode=TwoWay}"
-                    ItemsSource="{x:Bind ViewModel.WindowThemes, Mode=OneWay}"/>
-            </Grid>
-        </Border>
+                    Margin="4,8"/>
 
-        <StackPanel 
-            Grid.Row="2"            
-            Orientation="Vertical"
-            Margin="24,12">
-            <TextBlock
-                Style="{ThemeResource SubtitleTextBlockStyle}"
-                Margin="4">
-                <Run Text="{x:Bind ViewModel.ProductName}"/>
-                <Run Text="{x:Bind ViewModel.Version}"/>
-            </TextBlock>
+                <TextBlock 
+                    Text="{x:Bind ViewModel.ProductVersion}"
+                    Style="{ThemeResource BodyTextBlockStyle}"
+                    HorizontalAlignment="Stretch"
+                    Margin="4,8"/>
 
-            <TextBlock 
-                Text="{x:Bind ViewModel.LegalCopyright}"
-                Style="{ThemeResource BodyStrongTextBlockStyle}"
-                Margin="4"/>
-
-            <TextBlock 
-                Text="{x:Bind ViewModel.ProductDescription}"
-                Style="{ThemeResource BodyTextBlockStyle}"
-                HorizontalAlignment="Stretch"
-                Margin="4,8"/>
-
-            <TextBlock 
-                Text="{x:Bind ViewModel.ProductVersion}"
-                Style="{ThemeResource BodyTextBlockStyle}"
-                HorizontalAlignment="Stretch"
-                Margin="4,8"/>
-
+            </StackPanel>
         </StackPanel>
     </Grid>
 </Window>

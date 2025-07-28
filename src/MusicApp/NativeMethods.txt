@@ -28,3 +28,6 @@ WM_DWMSENDICONICLIVEPREVIEWBITMAP
 // Window Proc
 SetWindowLongPtr
 CallWindowProc
+
+// File Associacions
+SHChangeNotify

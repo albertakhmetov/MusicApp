@@ -26,8 +26,6 @@ using System.Threading.Tasks;
 
 public sealed class FileType : IEquatable<string>
 {
-    public readonly static FileType Mp3 = new FileType { Description = "MP3", Extension = ".mp3" };
-
     public required string Description { get; init; }
 
     public required string Extension { get; init; }

@@ -13,8 +13,8 @@
 		<EnableMsixTooling>true</EnableMsixTooling>
 		<WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
 		<SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
-	    <TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
-		<EnableCoreMrtTooling Condition=" '$(BuildingInsideVisualStudio)' != 'true' ">false</EnableCoreMrtTooling>	
+		<TargetPlatformMinVersion>10.0.19041.0</TargetPlatformMinVersion>
+		<EnableCoreMrtTooling Condition=" '$(BuildingInsideVisualStudio)' != 'true' ">false</EnableCoreMrtTooling>
 	</PropertyGroup>
 
 	<PropertyGroup>
@@ -52,42 +52,42 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Content Remove="Assets\app.ico" />
-	  <Content Remove="Assets\app.png" />
-	  <Content Remove="Assets\Dark.Next.ico" />
-	  <Content Remove="Assets\Dark.Pause.ico" />
-	  <Content Remove="Assets\Dark.Play.ico" />
-	  <Content Remove="Assets\Dark.Previous.ico" />
-	  <Content Remove="Assets\Light.Next.ico" />
-	  <Content Remove="Assets\Light.Pause.ico" />
-	  <Content Remove="Assets\Light.Play.ico" />
-	  <Content Remove="Assets\Light.Previous.ico" />
+		<Content Remove="Assets\app.ico" />
+		<Content Remove="Assets\app.png" />
+		<Content Remove="Assets\Dark.Next.ico" />
+		<Content Remove="Assets\Dark.Pause.ico" />
+		<Content Remove="Assets\Dark.Play.ico" />
+		<Content Remove="Assets\Dark.Previous.ico" />
+		<Content Remove="Assets\Light.Next.ico" />
+		<Content Remove="Assets\Light.Pause.ico" />
+		<Content Remove="Assets\Light.Play.ico" />
+		<Content Remove="Assets\Light.Previous.ico" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <None Remove="Controls\DragTargetControl.xaml" />
-	  <None Remove="Styles.xaml" />
-	  <None Remove="Views\SettingsWindow.xaml" />
+		<None Remove="Controls\DragTargetControl.xaml" />
+		<None Remove="Styles.xaml" />
+		<None Remove="Views\SettingsWindow.xaml" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Include="Assets\app.ico" />
-	  <EmbeddedResource Include="Assets\app.png" />
-	  <EmbeddedResource Include="Assets\Dark.Next.ico" />
-	  <EmbeddedResource Include="Assets\Dark.Pause.ico" />
-	  <EmbeddedResource Include="Assets\Dark.Play.ico" />
-	  <EmbeddedResource Include="Assets\Dark.Previous.ico" />
-	  <EmbeddedResource Include="Assets\Light.Next.ico" />
-	  <EmbeddedResource Include="Assets\Light.Pause.ico" />
-	  <EmbeddedResource Include="Assets\Light.Play.ico" />
-	  <EmbeddedResource Include="Assets\Light.Previous.ico" />
+		<EmbeddedResource Include="Assets\app.ico" />
+		<EmbeddedResource Include="Assets\app.png" />
+		<EmbeddedResource Include="Assets\Dark.Next.ico" />
+		<EmbeddedResource Include="Assets\Dark.Pause.ico" />
+		<EmbeddedResource Include="Assets\Dark.Play.ico" />
+		<EmbeddedResource Include="Assets\Dark.Previous.ico" />
+		<EmbeddedResource Include="Assets\Light.Next.ico" />
+		<EmbeddedResource Include="Assets\Light.Pause.ico" />
+		<EmbeddedResource Include="Assets\Light.Play.ico" />
+		<EmbeddedResource Include="Assets\Light.Previous.ico" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<Manifest Include="$(ApplicationManifest)" />
 		<PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.183">
-		  <PrivateAssets>all</PrivateAssets>
-		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 		</PackageReference>
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.7.250606001" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4188" />
@@ -97,7 +97,8 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\MusicApp.Core\MusicApp.Core.csproj" />
+		<ProjectReference Include="..\MusicApp.Core\MusicApp.Core.csproj" />
+		<ProjectReference Include="..\MusicApp.Resources\MusicApp.Resources.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -108,10 +109,10 @@
 			<Generator>MSBuild:Compile</Generator>
 		</None>
 		<Page Update="Views\SettingsWindow.xaml">
-		  <Generator>MSBuild:Compile</Generator>
+			<Generator>MSBuild:Compile</Generator>
 		</Page>
 		<Page Update="Controls\DragTargetControl.xaml">
-		  <Generator>MSBuild:Compile</Generator>
+			<Generator>MSBuild:Compile</Generator>
 		</Page>
 		<None Update="MainWindow.xaml">
 			<Generator>MSBuild:Compile</Generator>
@@ -120,7 +121,7 @@
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
 		<Page Update="Styles.xaml">
-		  <Generator>MSBuild:Compile</Generator>
+			<Generator>MSBuild:Compile</Generator>
 		</Page>
 	</ItemGroup>
 

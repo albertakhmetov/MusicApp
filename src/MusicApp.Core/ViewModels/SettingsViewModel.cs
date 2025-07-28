@@ -39,6 +39,7 @@ public class SettingsViewModel : ViewModel
     private readonly IAppService appService;
 
     private WindowTheme windowTheme;
+    private bool isAppRegistred;
 
     public SettingsViewModel(ISettingsService settingsService, IAppService appService)
     {
@@ -57,6 +58,15 @@ public class SettingsViewModel : ViewModel
     {
         get => windowTheme;
         set => settingsService.WindowTheme.Value = value;
+    }
+
+    public bool IsAppRegistred
+    {
+        get => isAppRegistred;
+        set
+        {
+            appService.SetAppRegistrationState(isAppRegistred: value);
+        }
     }
 
     public IImmutableList<WindowTheme> WindowThemes { get; }
@@ -94,6 +104,16 @@ public class SettingsViewModel : ViewModel
             {
                 windowTheme = x;
                 Invalidate(nameof(WindowTheme));
+            })
+            .DisposeWith(disposable);
+
+        appService
+            .IsAppRegisted
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(x =>
+            {
+                isAppRegistred = x;
+                Invalidate(nameof(IsAppRegistred));
             })
             .DisposeWith(disposable);
     }

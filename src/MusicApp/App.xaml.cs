@@ -45,6 +45,10 @@ public partial class App : Application
     [STAThread]
     public static void Main(string[] args)
     {
+     //   Native.MusicAppAssociator.Unregister();
+     //   Native.MusicAppAssociator.Register(@"D:\Sources\MusicApp\target\Release\MusicApp.exe");
+
+
         XamlCheckProcessRequirements();
         WinRT.ComWrappersSupport.InitializeComWrappers();
 

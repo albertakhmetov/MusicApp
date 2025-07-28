@@ -33,7 +33,11 @@ public interface IAppService
 
     IImmutableList<FileType> SupportedFileTypes { get; }
 
+    IObservable<bool> IsAppRegisted { get; }
+
     bool IsFileSupported(string? fileName);
+
+    void SetAppRegistrationState(bool isAppRegistred);
 
     Task ShowSettings();
 
