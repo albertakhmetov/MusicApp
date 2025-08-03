@@ -37,17 +37,23 @@ public class SettingsViewModel : ViewModel
 
     private readonly ISettingsService settingsService;
     private readonly IAppService appService;
+    private readonly IShellService shellService;
 
     private WindowTheme windowTheme;
     private bool isAppRegistred;
 
-    public SettingsViewModel(ISettingsService settingsService, IAppService appService)
+    public SettingsViewModel(
+        ISettingsService settingsService,
+        IAppService appService,
+        IShellService shellService)
     {
         ArgumentNullException.ThrowIfNull(settingsService);
         ArgumentNullException.ThrowIfNull(appService);
+        ArgumentNullException.ThrowIfNull(shellService);
 
         this.settingsService = settingsService;
         this.appService = appService;
+        this.shellService = shellService;
 
         WindowThemes = [WindowTheme.System, WindowTheme.Dark, WindowTheme.Light];
 
@@ -65,7 +71,14 @@ public class SettingsViewModel : ViewModel
         get => isAppRegistred;
         set
         {
-            appService.SetAppRegistrationState(isAppRegistred: value);
+            if (value)
+            {
+                shellService.Register();
+            }
+            else
+            {
+                shellService.Unregister();
+            }
         }
     }
 
@@ -107,8 +120,8 @@ public class SettingsViewModel : ViewModel
             })
             .DisposeWith(disposable);
 
-        appService
-            .IsAppRegisted
+        shellService
+            .IsRegistred
             .ObserveOn(SynchronizationContext.Current)
             .Subscribe(x =>
             {

@@ -21,6 +21,7 @@ namespace MusicApp.Native;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Disposables;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -30,47 +31,58 @@ using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.WindowsAndMessaging;
 
-internal sealed class WindowProc
+internal sealed class AppWindowProcedure : IAppWindowProcedure
 {
-    private readonly Dictionary<uint, IReceiver> receivers = [];
+    private readonly Dictionary<uint, List<IAppWindowProcedure.IReceiver>> receivers = [];
     private readonly WNDPROC wndProc, nativeWndProc;
-    private readonly IAppWindow window;
 
-    public WindowProc(IAppWindow window)
+    public AppWindowProcedure(IAppWindow window)
     {
         ArgumentNullException.ThrowIfNull(window);
 
-        this.window = window;
-
         wndProc = new WNDPROC(WndProc);
         var p = PInvoke.SetWindowLongPtr(
-            hWnd: HWND,
+            hWnd: (HWND)window.Handle,
             nIndex: WINDOW_LONG_PTR_INDEX.GWL_WNDPROC,
             dwNewLong: Marshal.GetFunctionPointerForDelegate(wndProc));
         nativeWndProc = Marshal.GetDelegateForFunctionPointer<WNDPROC>(p);
     }
 
-    public HWND HWND => (HWND)window.Handle;
-
-    public IDisposable Register(IReceiver receiver, uint msg)
+    public IDisposable Subscribe(uint msg, IAppWindowProcedure.IReceiver receiver)
     {
-        receivers[msg] = receiver;
+        if (receivers.ContainsKey(msg) is false)
+        {
+            receivers[msg] = new List<IAppWindowProcedure.IReceiver>();
+        }
 
-        return Disposable.Create(() => receivers.Remove(msg));
+        receivers[msg].Add(receiver);
+
+        return Disposable.Create(() =>
+        {
+            if (receivers.TryGetValue(msg, out var list))
+            {
+                list.Remove(receiver);
+            }
+        });
     }
 
     private LRESULT WndProc(HWND hWnd, uint msg, WPARAM wParam, LPARAM lParam)
     {
-        if (receivers.TryGetValue(msg, out var receiver))
+        if (receivers.TryGetValue(msg, out var receiverList))
         {
-            return receiver.Process(msg, wParam, lParam);
+            var isProcessed = false;
+
+            foreach (var receiver in receiverList)
+            {
+                isProcessed |= receiver.Process(msg, wParam.Value, lParam.Value);
+            }
+
+            if (isProcessed)
+            {
+                return (LRESULT)0;
+            }
         }
 
         return PInvoke.CallWindowProc(nativeWndProc, hWnd, msg, wParam, lParam);
-    }
-
-    public interface IReceiver
-    {
-        LRESULT Process(uint msg, WPARAM wParam, LPARAM lParam);
     }
 }

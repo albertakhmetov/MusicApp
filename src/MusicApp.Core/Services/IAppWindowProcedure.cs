@@ -16,28 +16,21 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services; 
+namespace MusicApp.Core.Services;
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
+using System.Reactive;
 using System.Text;
 using System.Threading.Tasks;
 
-public interface IAppWindow
+public interface IAppWindowProcedure
 {
-    nint Handle { get; }
+    IDisposable Subscribe(uint message, IReceiver receiver);
 
-    IAppWindowProcedure? Procedure { get { return null; } }
-
-    event CancelEventHandler? Closing;
-
-    event EventHandler Closed;
-
-    void Close();
-
-    void Show(bool activateWindow = true);
-
-    void Hide();
+    public interface IReceiver
+    {
+        bool Process(uint message, nuint wParam, nint lParam);
+    }
 }

@@ -37,7 +37,7 @@ public class PlaylistViewModel : ViewModel, IDisposable
 {
     private readonly CompositeDisposable disposable = [];
 
-    private readonly IAppService appService;
+    private readonly IShellService shellService;
     private readonly IPlaybackService playbackService;
     private readonly IFileService fileService;
     private readonly IAppCommandManager appCommandManager;
@@ -47,16 +47,16 @@ public class PlaylistViewModel : ViewModel, IDisposable
     private bool isShuffleMode, isRepeatMode;
 
     public PlaylistViewModel(
-        IAppService appService,
+        IShellService shellService,
         IPlaybackService playbackService,
         IFileService fileService,
         IAppCommandManager appCommandManager)
     {
-        ArgumentNullException.ThrowIfNull(appService);
+        ArgumentNullException.ThrowIfNull(shellService);
         ArgumentNullException.ThrowIfNull(playbackService);
         ArgumentNullException.ThrowIfNull(appCommandManager);
 
-        this.appService = appService;
+        this.shellService = shellService;
         this.playbackService = playbackService;
         this.fileService = fileService;
         this.appCommandManager = appCommandManager;
@@ -191,7 +191,7 @@ public class PlaylistViewModel : ViewModel, IDisposable
 
     private async void SelectAndAddItemsAsync()
     {
-        var selectedFiles = await fileService.PickFilesForOpenAsync(appService.SupportedFileTypes);
+        var selectedFiles = await fileService.PickFilesForOpenAsync(shellService.SupportedFileTypes);
 
         if (selectedFiles?.Any() != true)
         {

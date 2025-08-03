@@ -58,9 +58,9 @@ public sealed partial class DragTargetControl : UserControl
         typeof(DragTargetControl),
         null);
 
-    public static readonly DependencyProperty FileServiceProperty = DependencyProperty.Register(
-        nameof(AppService),
-        typeof(IAppService),
+    public static readonly DependencyProperty ShellServiceProperty = DependencyProperty.Register(
+        nameof(ShellService),
+        typeof(IShellService),
         typeof(DragTargetControl),
         null);
 
@@ -89,10 +89,10 @@ public sealed partial class DragTargetControl : UserControl
         set => SetValue(AddCommandProperty, value);
     }
 
-    public IAppService AppService
+    public IShellService ShellService
     {
-        get => (IAppService)GetValue(FileServiceProperty);
-        set => SetValue(FileServiceProperty, value);
+        get => (IShellService)GetValue(ShellServiceProperty);
+        set => SetValue(ShellServiceProperty, value);
     }
 
     private int ConvertToAddColumn(bool isReplaceVisible)
@@ -129,7 +129,7 @@ public sealed partial class DragTargetControl : UserControl
             var items = await e.DataView.GetStorageItemsAsync();
             var isAccepted = items
                 .Select(x => (x as StorageFile)?.Path)
-                .Any(x => AppService?.IsFileSupported(x) == true);
+                .Any(x => ShellService?.IsFileSupported(x) == true);
 
             if (isAccepted)
             {
@@ -173,7 +173,7 @@ public sealed partial class DragTargetControl : UserControl
 
             return items
                 .Select(x => (x as StorageFile)?.Path)
-                .Where(x => AppService?.IsFileSupported(x) == true)
+                .Where(x => ShellService?.IsFileSupported(x) == true)
                 .ToImmutableArray();
         }
 

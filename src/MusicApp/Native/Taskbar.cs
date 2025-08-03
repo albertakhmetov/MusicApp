@@ -20,57 +20,40 @@ namespace MusicApp.Native;
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
+using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
+using MusicApp.Core.Helpers;
 using MusicApp.Core.Services;
 using Windows.Win32;
 using Windows.Win32.Foundation;
-using Windows.Win32.Graphics.Gdi;
-using Windows.Win32.UI.WindowsAndMessaging;
 using Windows.Win32.UI.Shell;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
-using MusicApp.Core.Helpers;
-using System.Windows.Input;
-using Microsoft.UI.Dispatching;
-using System.Reactive.Concurrency;
-using MusicApp.Core.Models;
-using System.Drawing;
-using Microsoft.Win32.SafeHandles;
-using System.Windows.Forms;
-using System.Drawing.Imaging;
-using System.Drawing.Drawing2D;
-using Microsoft.UI;
-using Microsoft.UI.Xaml;
-using MusicApp.Views;
-using Microsoft.UI.Windowing;
-using Windows.Graphics.Capture;
-using Windows.Win32.Graphics.Dwm;
-using System.ComponentModel;
+using Windows.Win32.UI.WindowsAndMessaging;
 
-internal sealed class Taskbar : IDisposable, WindowProc.IReceiver
+internal sealed class Taskbar : IDisposable
 {
     private const int WM_COMMAND = 0x0111;
 
     private readonly CompositeDisposable disposable = [];
 
-    private readonly WindowProc windowProc;
+    private readonly IAppWindow appWindow;
     private readonly List<TaskbarButton> buttonsList;
     private readonly Subject<TaskbarButton> buttonChangedSubject, buttonsListChangedSubject;
 
-    private readonly Subject<int> commandExecutionSubject;
+    private readonly Receiver receiver;
 
     private ComObjectSafeHandle<ITaskbarList3> taskbarList;
 
-    public Taskbar(WindowProc windowProc)
+    public Taskbar(IAppWindow appWindow)
     {
-        ArgumentNullException.ThrowIfNull(windowProc);
-        this.windowProc = windowProc;
+        ArgumentNullException.ThrowIfNull(appWindow);
+        ArgumentNullException.ThrowIfNull(appWindow.Procedure);
+
+        this.appWindow = appWindow;
 
         buttonsList = new List<TaskbarButton>();
         buttonsListChangedSubject = new Subject<TaskbarButton>();
@@ -79,8 +62,8 @@ internal sealed class Taskbar : IDisposable, WindowProc.IReceiver
         taskbarList = new ComObjectSafeHandle<ITaskbarList3>((ITaskbarList3)new CTaskbarList());
         taskbarList.Value.HrInit();
 
-        commandExecutionSubject = new Subject<int>();
-        commandExecutionSubject
+        receiver = new Receiver();
+        receiver.ButtonClicked
             .ObserveOn(TaskPoolScheduler.Default)
             .Subscribe(buttonId => ExecuteCommand(buttonId))
             .DisposeWith(disposable);
@@ -88,8 +71,8 @@ internal sealed class Taskbar : IDisposable, WindowProc.IReceiver
 
         InitSubscriptions();
 
-        this.windowProc
-            .Register(this, WM_COMMAND)
+        this.appWindow.Procedure
+            .Subscribe(WM_COMMAND, receiver)
             .DisposeWith(disposable);
     }
 
@@ -109,7 +92,7 @@ internal sealed class Taskbar : IDisposable, WindowProc.IReceiver
     }
 
     public TaskbarButton? GetButton(string name) => buttonsList.FirstOrDefault(x => x.Name == name);
-    
+
     public TaskbarButton AddButton(string name)
     {
         var button = new TaskbarButton(name);
@@ -140,18 +123,6 @@ internal sealed class Taskbar : IDisposable, WindowProc.IReceiver
         {
             return false;
         }
-    }
-
-    LRESULT WindowProc.IReceiver.Process(uint msg, WPARAM wParam, LPARAM lParam)
-    {
-        if (msg == WM_COMMAND)
-        {
-            var buttonId = (int)(wParam & 0xFFFF);
-
-            commandExecutionSubject.OnNext(buttonId);
-        }
-
-        return (LRESULT)0;
     }
 
     private void OnButtonPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -192,14 +163,14 @@ internal sealed class Taskbar : IDisposable, WindowProc.IReceiver
     {
         var thumbButtons = PrepareThumbButtons(buttonsList);
 
-        taskbarList.Value.ThumbBarAddButtons(windowProc.HWND, thumbButtons.AsSpan());
+        taskbarList.Value.ThumbBarAddButtons((HWND)appWindow.Handle, thumbButtons.AsSpan());
     }
 
     private unsafe void UpdateButtons(IList<TaskbarButton> buttons)
     {
         var thumbButtons = PrepareThumbButtons(buttons);
 
-        taskbarList.Value.ThumbBarUpdateButtons(windowProc.HWND, thumbButtons.AsSpan());
+        taskbarList.Value.ThumbBarUpdateButtons((HWND)appWindow.Handle, thumbButtons.AsSpan());
     }
 
     private static THUMBBUTTON[] PrepareThumbButtons(IList<TaskbarButton> buttons)
@@ -219,6 +190,32 @@ internal sealed class Taskbar : IDisposable, WindowProc.IReceiver
         }
 
         return thumbButtons;
+    }
+
+    private sealed class Receiver : IAppWindowProcedure.IReceiver
+    {
+        private readonly Subject<int> buttonClickedSubject;
+
+        public Receiver()
+        {
+            buttonClickedSubject = new Subject<int>();
+            ButtonClicked = buttonClickedSubject.AsObservable();
+        }
+
+        public IObservable<int> ButtonClicked { get; }
+
+        public bool Process(uint message, nuint wParam, nint lParam)
+        {
+            if (message != WM_COMMAND)
+            {
+                return false;
+            }
+
+            var buttonId = (int)(wParam & 0xFFFF);
+            buttonClickedSubject.OnNext(buttonId);
+
+            return true;
+        }
     }
 
     private class ComObjectSafeHandle<T> : SafeHandle where T : class

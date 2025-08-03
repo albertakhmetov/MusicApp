@@ -35,55 +35,68 @@ using MusicApp.Core.Services;
 using MusicApp.Core.ViewModels;
 using MusicApp.Services;
 using WinRT.Interop;
-using MusicApp.Service;
 using MusicApp.Core.Models;
 using System.Runtime.InteropServices;
 using MusicApp.Helpers;
+using Microsoft.Extensions.Logging;
+using NLog.Extensions.Logging;
+using System.Diagnostics;
+using Windows.Win32;
+using System.Web;
+using System.Xml.Schema;
+using MusicApp.Core;
+using System.Reactive.Disposables;
 
 public partial class App : Application
 {
-    [STAThread]
-    public static void Main(string[] args)
+    private readonly CompositeDisposable disposable = [];
+
+    private readonly ISettingsService settingsService;
+    private readonly IFileService fileService;
+    private readonly IPlaylistService playlistService;
+    private readonly IAppCommandManager appCommandManager;
+
+    private readonly ILazyDependency<ISingleInstanceService> singleInstanceService;
+    private readonly ILazyDependency<ITaskbarMediaButtonsService> taskbarMediaButtons;
+    private readonly ILazyDependency<ITaskbarMediaCoverService> taskbarMediaCover;
+    private readonly ILazyDependency<IAppWindow> appWindow;
+
+    private readonly ILogger<App> logger;
+
+    public App(
+        ISettingsService settingsService,
+        IFileService fileService,
+        IPlaylistService playlistService,
+        IAppCommandManager appCommandManager,
+        ILogger<App> logger,
+        ILazyDependency<ISingleInstanceService> singleInstanceService,
+        ILazyDependency<ITaskbarMediaButtonsService> taskbarMediaButtons,
+        ILazyDependency<ITaskbarMediaCoverService> taskbarMediaCover,
+        [FromKeyedServices("Main")] ILazyDependency<IAppWindow> appWindow)
     {
-     //   Native.MusicAppAssociator.Unregister();
-     //   Native.MusicAppAssociator.Register(@"D:\Sources\MusicApp\target\Release\MusicApp.exe");
+        ArgumentNullException.ThrowIfNull(settingsService);
+        ArgumentNullException.ThrowIfNull(fileService);
+        ArgumentNullException.ThrowIfNull(playlistService);
+        ArgumentNullException.ThrowIfNull(appCommandManager);
+        ArgumentNullException.ThrowIfNull(singleInstanceService);
+        ArgumentNullException.ThrowIfNull(taskbarMediaButtons);
+        ArgumentNullException.ThrowIfNull(taskbarMediaCover);
+        ArgumentNullException.ThrowIfNull(appWindow);
 
+        this.settingsService = settingsService;
+        this.fileService = fileService;
+        this.playlistService = playlistService;
+        this.appCommandManager = appCommandManager;
+        this.logger = logger;
 
-        XamlCheckProcessRequirements();
-        WinRT.ComWrappersSupport.InitializeComWrappers();
-
-        using var host = CreateHost();
-
-        var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
-
-        lifetime.ApplicationStopping.Register(() => instance?.Exit());
-        lifetime.ApplicationStarted.Register(() => Start(_ =>
-        {
-            var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
-            SynchronizationContext.SetSynchronizationContext(context);
-
-            instance = new App(host.Services, args);
-        }));
-
-        host.Run();
-    }
-
-    private static App? instance;
-
-    private readonly IServiceProvider serviceProvider;
-
-    private readonly ImmutableArray<string> arguments;
-    private IAppWindow? mainWindow;
-
-    public App(IServiceProvider serviceProvider, string[] args)
-    {
-        ArgumentNullException.ThrowIfNull(serviceProvider);
-
-        this.serviceProvider = serviceProvider;
+        this.singleInstanceService = singleInstanceService;
+        this.taskbarMediaButtons = taskbarMediaButtons;
+        this.taskbarMediaCover = taskbarMediaCover;
+        this.appWindow = appWindow;
 
         InitializeComponent();
 
-        var theme = serviceProvider.GetRequiredService<ISettingsService>().WindowTheme.Value;
+        var theme = this.settingsService.WindowTheme.Value;
 
         switch (theme)
         {
@@ -97,42 +110,56 @@ public partial class App : Application
         }
     }
 
-    protected override void OnLaunched(LaunchActivatedEventArgs args)
+    protected override void OnLaunched(LaunchActivatedEventArgs _)
     {
-        base.OnLaunched(args);
+        base.OnLaunched(_);
 
-        mainWindow = serviceProvider.GetRequiredKeyedService<IAppWindow>("Main");
-        mainWindow.Show();
+        try
+        {
+            var windowDisposable = new CompositeDisposable {
+                singleInstanceService.Resolve(),
+                taskbarMediaButtons.Resolve(),
+                taskbarMediaCover.Resolve()
+            };          
+            
+            var window = appWindow.Resolve();
+            window.Closed += (_, _) =>
+            {
+                windowDisposable.Dispose();
+            };
+
+            window.Show();
+
+            var args = Environment.GetCommandLineArgs();
+            logger.LogInformation("Args count: {length}", args.Length);
+            foreach (var arg in args)
+            {
+                logger.LogInformation("\t{arg}", arg);
+            }
+
+            if (args.Length > 1)
+            {
+                LoadMediaItems(args[1]);
+            }
+            else
+            {
+                playlistService.Load();
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogCritical(ex, "OnLaunched exception");
+        }
     }
 
-    private static IHost CreateHost()
+    private async void LoadMediaItems(string path)
     {
-        var builder = Host.CreateApplicationBuilder();
+        var items = await fileService.LoadMediaItems([path]);
 
-        builder.Services.AddHostedService<KeeperService>();
-
-        builder.Services.AddSingleton<IAppService, AppService>();
-
-        builder.Services.AddKeyedSingleton<IAppWindow, MainWindow>("Main");
-        builder.Services.AddSingleton<SettingsWindow>();
-
-        builder.Services.AddSingleton<IFileService, FileService>();
-        builder.Services.AddSingleton<ISystemEventsService, SystemEventsService>();
-        builder.Services.AddSingleton<ISettingsService, SettingsService>();
-
-        builder.Services.AddSingleton<IPlaybackService, PlaybackService>();
-
-        builder.Services.AddSingleton<IAppCommandManager, AppCommandManager>();
-        builder.Services.AddTransient<IAppCommand<MediaItemAddCommand.Parameters>, MediaItemAddCommand>();
-        builder.Services.AddTransient<IAppCommand<MediaItemRemoveCommand.Parameters>, MediaItemRemoveCommand>();
-
-        builder.Services.AddSingleton<PlayerViewModel>();
-        builder.Services.AddSingleton<PlaylistViewModel>();
-        builder.Services.AddSingleton<SettingsViewModel>();
-
-        return builder.Build();
+        await appCommandManager.ExecuteAsync(new MediaItemAddCommand.Parameters
+        {
+            Overwrite = true,
+            Items = items.ToImmutableArray()
+        });
     }
-
-    [DllImport("Microsoft.ui.xaml.dll")]
-    private static extern void XamlCheckProcessRequirements();
 }

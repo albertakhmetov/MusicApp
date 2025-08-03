@@ -39,7 +39,7 @@
 		<!-- Use our own Main entry point so we can control the IHostBuilder -->
 		<DefineConstants>DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 		<!-- We use App class to place Main method -->
-		<StartupObject>MusicApp.App</StartupObject>
+		<StartupObject>MusicApp.Program</StartupObject>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -93,7 +93,10 @@
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4188" />
 
 		<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.6" />
+		<PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.7" />
 		<PackageReference Include="System.Drawing.Common" Version="9.0.6" />
+		<PackageReference Include="NLog" Version="5.3.2" />
+		<PackageReference Include="NLog.Extensions.Logging" Version="5.3.2" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -107,6 +110,9 @@
 		</None>
 		<None Update="Generic.xaml">
 			<Generator>MSBuild:Compile</Generator>
+		</None>
+		<None Update="nlog.config">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<Page Update="Views\SettingsWindow.xaml">
 			<Generator>MSBuild:Compile</Generator>
@@ -123,6 +129,10 @@
 		<Page Update="Styles.xaml">
 			<Generator>MSBuild:Compile</Generator>
 		</Page>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Properties\" />
 	</ItemGroup>
 
 	<Target Name="RemoveFoldersWithMuiFiles" Condition="'$(WindowsPackageType)' == 'None'" AfterTargets="Build">

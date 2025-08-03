@@ -32,43 +32,37 @@ using System.Windows.Forms;
 using Microsoft.Win32.SafeHandles;
 using MusicApp.Core.Helpers;
 using MusicApp.Core.Models;
+using MusicApp.Core.Services;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Dwm;
 using Windows.Win32.Graphics.Gdi;
 
-internal sealed class Thumbnail : WindowProc.IReceiver, IDisposable
+internal sealed class Thumbnail : IDisposable
 {
     private readonly CompositeDisposable disposable = [];
 
-    private readonly WindowProc windowProc;
-    private ImageData? imageData;
+    private readonly IAppWindow appWindow;
+    private readonly Receiver receiver;
 
-    public Thumbnail(WindowProc windowProc)
+    public Thumbnail(IAppWindow appWindow)
     {
-        ArgumentNullException.ThrowIfNull(windowProc);
+        ArgumentNullException.ThrowIfNull(appWindow);
+        ArgumentNullException.ThrowIfNull(appWindow.Procedure);
 
-        this.windowProc = windowProc;
+        this.appWindow = appWindow;
+
+        receiver = new Receiver(this);
 
         SetStaticPreview();
 
-        this.windowProc
-            .Register(this, PInvoke.WM_DWMSENDICONICTHUMBNAIL)
+        this.appWindow.Procedure
+            .Subscribe(PInvoke.WM_DWMSENDICONICTHUMBNAIL, receiver)
             .DisposeWith(disposable);
 
-        this.windowProc
-            .Register(this, PInvoke.WM_DWMSENDICONICLIVEPREVIEWBITMAP)
+        this.appWindow.Procedure
+            .Subscribe(PInvoke.WM_DWMSENDICONICLIVEPREVIEWBITMAP, receiver)
             .DisposeWith(disposable);
-    }
-
-    public ImageData? ImageData
-    {
-        get => imageData;
-        set
-        {
-            this.imageData = value;
-
-        }
     }
 
     public event PreviewEventHandler? Preview;
@@ -77,7 +71,7 @@ internal sealed class Thumbnail : WindowProc.IReceiver, IDisposable
 
     public void Invalidate()
     {
-        PInvoke.DwmInvalidateIconicBitmaps(windowProc.HWND);
+        PInvoke.DwmInvalidateIconicBitmaps((HWND)appWindow.Handle);
     }
 
     public void Dispose()
@@ -86,35 +80,6 @@ internal sealed class Thumbnail : WindowProc.IReceiver, IDisposable
         {
             disposable.Dispose();
         }
-    }
-
-    LRESULT WindowProc.IReceiver.Process(uint msg, WPARAM wParam, LPARAM lParam)
-    {
-        if (msg == PInvoke.WM_DWMSENDICONICTHUMBNAIL)
-        {
-            var args = new PreviewEventArgs
-            {
-                Width = (int)(lParam.Value >> 16),
-                Height = (int)(lParam.Value & 0xFFFF)
-            };
-
-            Preview?.Invoke(this, args).Wait();
-
-            if (args.Bitmap != null)
-            {
-                using var bitmap = args.Bitmap;
-                using var hBitmap = new HBitmapSafeHandle(bitmap);
-
-                PInvoke.DwmSetIconicThumbnail(windowProc.HWND, hBitmap, 0).ThrowOnFailure();
-            }
-        }
-
-        if (msg == PInvoke.WM_DWMSENDICONICLIVEPREVIEWBITMAP)
-        {
-            SetLivePreview();
-        }
-
-        return (LRESULT)0;
     }
 
     private async void SetLivePreview()
@@ -136,7 +101,7 @@ internal sealed class Thumbnail : WindowProc.IReceiver, IDisposable
                 using var bitmap = args.Bitmap;
                 using var hBitmap = new HBitmapSafeHandle(bitmap);
 
-                PInvoke.DwmSetIconicLivePreviewBitmap(windowProc.HWND, hBitmap, null, 0).ThrowOnFailure();
+                PInvoke.DwmSetIconicLivePreviewBitmap((HWND)appWindow.Handle, hBitmap, null, 0).ThrowOnFailure();
             }
         }
     }
@@ -149,16 +114,52 @@ internal sealed class Thumbnail : WindowProc.IReceiver, IDisposable
         unsafe
         {
             PInvoke.DwmSetWindowAttribute(
-                windowProc.HWND,
+                (HWND)appWindow.Handle,
                 DWMWINDOWATTRIBUTE.DWMWA_FORCE_ICONIC_REPRESENTATION,
                 &forceIconic,
                 (uint)Marshal.SizeOf<BOOL>()).ThrowOnFailure();
 
             PInvoke.DwmSetWindowAttribute(
-                windowProc.HWND,
+                (HWND)appWindow.Handle,
                 DWMWINDOWATTRIBUTE.DWMWA_HAS_ICONIC_BITMAP,
                 &hasIconicBitmap,
                 (uint)Marshal.SizeOf<BOOL>()).ThrowOnFailure();
+        }
+    }
+
+    private sealed class Receiver(Thumbnail thumbnail) : IAppWindowProcedure.IReceiver
+    {
+        public bool Process(uint message, nuint wParam, nint lParam)
+        {
+            if (message == PInvoke.WM_DWMSENDICONICTHUMBNAIL)
+            {
+                var args = new PreviewEventArgs
+                {
+                    Width = (int)(lParam >> 16),
+                    Height = (int)(lParam & 0xFFFF)
+                };
+
+                thumbnail.Preview?.Invoke(thumbnail, args).Wait();
+
+                if (args.Bitmap != null)
+                {
+                    using var bitmap = args.Bitmap;
+                    using var hBitmap = new HBitmapSafeHandle(bitmap);
+
+                    PInvoke.DwmSetIconicThumbnail((HWND)thumbnail.appWindow.Handle, hBitmap, 0).ThrowOnFailure();
+                }
+
+                return true;
+            }
+
+            if (message == PInvoke.WM_DWMSENDICONICLIVEPREVIEWBITMAP)
+            {
+                thumbnail.SetLivePreview();
+
+                return true;
+            }
+
+            return false;
         }
     }
 

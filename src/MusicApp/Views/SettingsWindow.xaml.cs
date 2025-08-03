@@ -41,8 +41,10 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using WinRT.Interop;
+using System.ComponentModel;
 
-public sealed partial class SettingsWindow : Window
+public sealed partial class SettingsWindow : Window, IAppWindow
 {
     private readonly CompositeDisposable disposable = [];
     private readonly ISettingsService settingsService;
@@ -76,11 +78,35 @@ public sealed partial class SettingsWindow : Window
 
         SetTitleBar(AppTitleBar);
 
-        Closed += OnClosed;
+        AppWindow.Resize(AppWindow.Size);
+        AppWindow.Closing += OnAppWindowClosing;
+        base.Closed += OnClosed;
+
         InitSubscriptions();
     }
 
     public SettingsViewModel ViewModel { get; }
+
+    public nint Handle => WindowNative.GetWindowHandle(this);
+
+    public void Show(bool activateWindow = true)
+    {
+        AppWindow.Show(activateWindow);
+    }
+
+    public void Hide() => AppWindow.Hide();
+
+    public event CancelEventHandler? Closing;
+
+    public new event EventHandler Closed;
+
+    private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    {
+        var e = new CancelEventArgs();
+        Closing?.Invoke(this, e);
+
+        args.Cancel = e.Cancel;
+    }
 
     private void InitSubscriptions()
     {
@@ -102,6 +128,8 @@ public sealed partial class SettingsWindow : Window
 
     private void OnClosed(object sender, WindowEventArgs args)
     {
+        Closed?.Invoke(this, EventArgs.Empty);
+
         if (!disposable.IsDisposed)
         {
             disposable.Dispose();

@@ -29,15 +29,9 @@ using MusicApp.Core.ViewModels;
 
 public interface IAppService
 {
+    static string AppUserModelID => "com.albertakhmetov.MusicApp";
+
     AppInfo AppInfo { get; }
-
-    IImmutableList<FileType> SupportedFileTypes { get; }
-
-    IObservable<bool> IsAppRegisted { get; }
-
-    bool IsFileSupported(string? fileName);
-
-    void SetAppRegistrationState(bool isAppRegistred);
 
     Task ShowSettings();
 

@@ -2,6 +2,10 @@ ShowWindow
 MonitorFromWindow
 GetDpiForMonitor
 EnumDisplayMonitors
+SetForegroundWindow
+SendMessage
+WM_COPYDATA
+COPYDATASTRUCT
 
 GetTickCount
 GetDoubleClickTime
@@ -31,3 +35,4 @@ CallWindowProc
 
 // File Associacions
 SHChangeNotify
+SetCurrentProcessExplicitAppUserModelID

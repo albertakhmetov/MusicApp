@@ -16,28 +16,25 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services; 
+namespace MusicApp.Core.Services;
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MusicApp.Core.Models;
 
-public interface IAppWindow
+public interface IShellService
 {
-    nint Handle { get; }
+    IImmutableList<FileType> SupportedFileTypes { get; }
 
-    IAppWindowProcedure? Procedure { get { return null; } }
+    IObservable<bool> IsRegistred { get; }
 
-    event CancelEventHandler? Closing;
+    bool IsFileSupported(string? fileName);
 
-    event EventHandler Closed;
+    void Register();
 
-    void Close();
-
-    void Show(bool activateWindow = true);
-
-    void Hide();
+    void Unregister();
 }

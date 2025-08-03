@@ -19,11 +19,21 @@
 namespace MusicApp.Core.Services;
 
 using System.Collections.Immutable;
+using System.Diagnostics;
 using MusicApp.Core.Models;
 
 public interface IFileService
 {
-    string ApplicationPath { get; }
+    static string ApplicationPath
+    {
+        get
+        {
+            var processModule = Process.GetCurrentProcess().MainModule;
+            return processModule is null
+                ? throw new InvalidOperationException("Process.GetCurrentProcess().MainModule is null")
+                : processModule.FileName;
+        }
+    }
 
     string UserDataPath { get; }
 

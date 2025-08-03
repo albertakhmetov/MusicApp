@@ -16,28 +16,18 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services; 
+namespace MusicApp.Core.Services;
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public interface IAppWindow
+public interface IPlaylistService
 {
-    nint Handle { get; }
+    public void Load()
+    {
 
-    IAppWindowProcedure? Procedure { get { return null; } }
-
-    event CancelEventHandler? Closing;
-
-    event EventHandler Closed;
-
-    void Close();
-
-    void Show(bool activateWindow = true);
-
-    void Hide();
+    }
 }

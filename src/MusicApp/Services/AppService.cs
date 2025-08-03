@@ -42,150 +42,41 @@ using System.Reactive.Linq;
 using Microsoft.Win32;
 using Windows.Win32;
 using Windows.Win32.UI.Shell;
+using Microsoft.Windows.AppLifecycle;
+using MusicApp.Core;
 
 internal class AppService : IAppService
 {
-    private readonly IServiceProvider serviceProvider;
+    private readonly ILazyDependency<IAppWindow> appWindow;
+    private IAppWindow? settingsWindow;
 
-    private readonly BehaviorSubject<bool> isAppRegistedSubject;
-    private SettingsWindow? settingsWindow;
-
-    public AppService(IServiceProvider serviceProvider)
+    public AppService([FromKeyedServices("Settings")] ILazyDependency<IAppWindow> appWindow)
     {
-        ArgumentNullException.ThrowIfNull(serviceProvider);
+        ArgumentNullException.ThrowIfNull(appWindow);
 
-        this.serviceProvider = serviceProvider;
+        this.appWindow = appWindow;
 
         AppInfo = LoadAppInfo();
-        SupportedFileTypes = [
-            new FileType { Description = "MP3 Music File", Extension = ".mp3" }
-        ];
-
-        isAppRegistedSubject = new BehaviorSubject<bool>(GetAppRegistrationState());
-        IsAppRegisted = isAppRegistedSubject.AsObservable();
     }
 
     public AppInfo AppInfo { get; }
-
-    public IImmutableList<FileType> SupportedFileTypes { get; }
-
-    public IObservable<bool> IsAppRegisted { get; }
-
-    public bool IsFileSupported(string? fileName)
-    {
-        var ext = Path.GetExtension(fileName);
-
-        return ext is not null && SupportedFileTypes.Any(x => x.Equals(ext));
-    }
 
     public async Task ShowSettings()
     {
         if (settingsWindow is null)
         {
-            settingsWindow = serviceProvider.GetRequiredService<SettingsWindow>();
-            settingsWindow.AppWindow.Closing += OnSettingsWindowClosing;
+            settingsWindow = appWindow.Resolve();
+            settingsWindow.Closing += OnSettingsWindowClosing;
 
             await Task.Delay(TimeSpan.FromMilliseconds(100));
         }
 
-        settingsWindow.AppWindow.Show(true);
+        settingsWindow.Show(true);
     }
 
     public void Exit()
     {
-        serviceProvider.GetRequiredService<IHostApplicationLifetime>().StopApplication();
-    }
-
-    public void SetAppRegistrationState(bool isAppRegisted)
-    {
-        if(isAppRegisted)
-        {
-            RegisterApp();
-        }
-        else
-        {
-            UnregisterApp();
-        }
-    }
-
-    private void RegisterApp()
-    {
-        var appPath = serviceProvider.GetRequiredService<IFileService>().ApplicationPath;
-        var resourcePath = Path.Combine(Path.GetDirectoryName(appPath)!, $"{AppInfo.ProductName}.Resources.dll");
-        var appFileName = Path.GetFileName(appPath);
-
-        using var capabilitiesKey = Registry.CurrentUser.CreateSubKey($@"Software\{AppInfo.ProductName}\Capabilities");
-        capabilitiesKey.SetValue("ApplicationName", AppInfo.ProductName);
-        capabilitiesKey.SetValue("ApplicationDescription", AppInfo.ProductDescription ?? "");
-        capabilitiesKey.SetValue("ApplicationIcon", $"{resourcePath},0");
-
-        foreach (var type in SupportedFileTypes)
-        {
-            var fileExtension = $"{AppInfo.ProductName}{type.Extension}";
-
-            using var fileKey = capabilitiesKey.CreateSubKey("FileAssociations");
-            fileKey.SetValue(type.Extension, fileExtension);
-
-            using var fileExtensionKey = Registry.CurrentUser.CreateSubKey($@"Software\Classes\{fileExtension}");
-            {
-                fileExtensionKey.SetValue("", type.Description);
-
-                using var fileExtensionIconKey = fileExtensionKey.CreateSubKey("DefaultIcon");
-                fileExtensionIconKey.SetValue("", $"{resourcePath},1");
-
-                using var fileExtensionCommandKey = fileExtensionKey.CreateSubKey("shell\\open\\command");
-                fileExtensionCommandKey.SetValue("", $"\"{appPath}\" \"%1\"");
-            }
-        }
-
-        using var registeredAppsKey = Registry.CurrentUser.CreateSubKey(@"Software\RegisteredApplications");
-        registeredAppsKey.SetValue(AppInfo.ProductName, $@"Software\{AppInfo.ProductName}\Capabilities");
-
-        using var appKey = Registry.CurrentUser.CreateSubKey($@"Software\Microsoft\Windows\CurrentVersion\App Paths\{appFileName}");
-        appKey.SetValue("", appPath);
-
-        unsafe
-        {
-            PInvoke.SHChangeNotify(SHCNE_ID.SHCNE_ASSOCCHANGED, 0x0000, null, null);
-        }
-
-        isAppRegistedSubject.OnNext(GetAppRegistrationState());
-    }
-
-    private void UnregisterApp()
-    {
-        var appPath = serviceProvider.GetRequiredService<IFileService>().ApplicationPath;
-        var appFileName = Path.GetFileName(appPath);
-
-        foreach (var type in SupportedFileTypes)
-        {
-            var fileExtension = $"{AppInfo.ProductName}{type.Extension}";
-            Registry.CurrentUser.DeleteSubKeyTree($@"Software\Classes\{fileExtension}", false);
-        }
-
-        using (var registeredAppsKey = Registry.CurrentUser.OpenSubKey(@"Software\RegisteredApplications", true))
-        {
-            registeredAppsKey?.DeleteValue(AppInfo.ProductName, false);
-        }
-
-        Registry.CurrentUser.DeleteSubKeyTree($@"Software\{AppInfo.ProductName}", false);
-
-        Registry.CurrentUser.DeleteSubKeyTree($@"Software\Microsoft\Windows\CurrentVersion\App Paths\{appFileName}", false);
-
-        unsafe
-        {
-            PInvoke.SHChangeNotify(SHCNE_ID.SHCNE_ASSOCCHANGED, 0x0000, null, null);
-        }
-
-        isAppRegistedSubject.OnNext(GetAppRegistrationState());
-    }
-
-    private bool GetAppRegistrationState()
-    {
-        using (var registeredAppsKey = Registry.CurrentUser.OpenSubKey(@"Software\RegisteredApplications"))
-        {
-            return registeredAppsKey?.GetValue(AppInfo.ProductName) is not null;
-        }
+        App.Current.Exit();
     }
 
     private AppInfo LoadAppInfo()
@@ -208,10 +99,10 @@ internal class AppService : IAppService
         };
     }
 
-    private void OnSettingsWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    private void OnSettingsWindowClosing(object? sender, CancelEventArgs args)
     {
         args.Cancel = true;
 
-        sender.Hide();
+        (sender as IAppWindow)?.Hide();
     }
 }

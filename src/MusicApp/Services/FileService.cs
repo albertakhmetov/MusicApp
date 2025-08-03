@@ -32,28 +32,20 @@ using Windows.Storage.Pickers;
 using WinRT.Interop;
 using System.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using MusicApp.Core;
 
 class FileService : IFileService
 {
-    private readonly IServiceProvider serviceProvider;
+    private readonly ILazyDependency<IAppWindow> appWindowDependency;
 
-    public FileService(IServiceProvider serviceProvider)
+    public FileService([FromKeyedServices("Main")] ILazyDependency<IAppWindow> appWindow)
     {
-        ArgumentNullException.ThrowIfNull(serviceProvider);
+        ArgumentNullException.ThrowIfNull(appWindow);
 
-        this.serviceProvider = serviceProvider;
-    
-        var processModule = Process.GetCurrentProcess().MainModule;
-        if (processModule is null)
-        {
-            throw new InvalidOperationException("Process.GetCurrentProcess().MainModule is null");
-        }
+        appWindowDependency = appWindow;
 
-        ApplicationPath = processModule.FileName;
-        UserDataPath = Path.GetDirectoryName(ApplicationPath)!;
+        UserDataPath = Path.GetDirectoryName(IFileService.ApplicationPath)!;
     }
-
-    public string ApplicationPath { get; }
 
     public string UserDataPath { get; }
 
@@ -146,6 +138,6 @@ class FileService : IFileService
 
     private nint GetHandle()
     {
-        return serviceProvider.GetRequiredKeyedService<IAppWindow>("Main").Handle;
+        return appWindowDependency.Resolve().Handle;
     }
 }

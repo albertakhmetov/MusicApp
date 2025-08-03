@@ -16,7 +16,7 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Service;
+namespace MusicApp.Services;
 
 using Microsoft.Extensions.Hosting;
 using MusicApp.Core.Helpers;
@@ -34,31 +34,39 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
-internal class KeeperService : IHostedService
+internal class PlaylistService : IPlaylistService, IDisposable
 {
     private const string PLAYLIST_FILENAME = "playlist.json";
-    private const string SETTINGS_FILENAME = "settings.json";
 
     private readonly CompositeDisposable disposable = [];
     private readonly IPlaybackService playbackService;
-    private readonly ISettingsService settingsService;
     private readonly IFileService fileService;
 
-    public KeeperService(IPlaybackService playbackService, ISettingsService settingsService, IFileService fileService)
+    public PlaylistService(IPlaybackService playbackService, IFileService fileService)
     {
         ArgumentNullException.ThrowIfNull(playbackService);
-        ArgumentNullException.ThrowIfNull(settingsService);
         ArgumentNullException.ThrowIfNull(fileService);
 
         this.playbackService = playbackService;
-        this.settingsService = settingsService;
         this.fileService = fileService;
+    }
+
+    public void Load()
+    {
+
+
+    }
+
+    public void Dispose()
+    {
+        if (disposable.IsDisposed is false)
+        {
+            disposable.Dispose();
+        }
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
-        LoadSettings();
-
         await LoadPlaylist();
 
         playbackService
@@ -66,14 +74,6 @@ internal class KeeperService : IHostedService
             .CombineLatest(playbackService.ShuffledItems, playbackService.MediaItem, playbackService.ShuffleMode, playbackService.RepeatMode)
             .Throttle(TimeSpan.FromMilliseconds(500))
             .Subscribe(x => SavePlaylist(playbackService.Items.List, x.Second, x.Third, x.Fourth, x.Fifth))
-            .DisposeWith(disposable);
-
-        settingsService.WindowTheme
-            .DistinctUntilChanged()
-            .Select(x => true)
-            .Throttle(TimeSpan.FromMilliseconds(500))
-            .Skip(1)
-            .Subscribe(_ => SaveSettings())
             .DisposeWith(disposable);
     }
 
@@ -130,58 +130,6 @@ internal class KeeperService : IHostedService
         writer.WriteBoolean(nameof(PlaylistLoader.RepeatMode), repeatMode);
 
         writer.WriteEndObject();
-
-    }
-
-    private void LoadSettings()
-    {
-        using var stream = fileService.ReadUserFile(SETTINGS_FILENAME);
-
-        if (stream is null)
-        {
-            return;
-        }
-
-        try
-        {
-            var node = JsonNode.Parse(stream);
-
-            var windowThemeNode = node?[nameof(ISettingsService.WindowTheme)];
-            if (windowThemeNode?.GetValueKind() == JsonValueKind.String
-                && Enum.TryParse<WindowTheme>(windowThemeNode.GetValue<string>(), out var windowTheme))
-            {
-                settingsService.WindowTheme.Value = windowTheme;
-            }
-        }
-        catch (JsonException)
-        {
-        }
-    }
-
-    private void SaveSettings()
-    {
-        using var stream = fileService.WriteUserFile(SETTINGS_FILENAME, overwrite: true);
-
-        var windowTheme = settingsService.WindowTheme.Value;
-
-        var options = new JsonWriterOptions { Indented = true };
-        using var writer = new Utf8JsonWriter(stream, options);
-
-        writer.WriteStartObject();
-
-        writer.WriteString(nameof(ISettingsService.WindowTheme), windowTheme.ToString());
-
-        writer.WriteEndObject();
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        if (!disposable.IsDisposed)
-        {
-            disposable.Dispose();
-        }
-
-        return Task.CompletedTask;
     }
 
     private class PlaylistLoader
