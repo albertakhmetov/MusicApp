@@ -33,7 +33,7 @@ public interface IAppWindow
 
     event CancelEventHandler? Closing;
 
-    event EventHandler Closed;
+    event EventHandler? Closed;
 
     void Close();
 

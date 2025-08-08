@@ -18,16 +18,14 @@
  */
 namespace MusicApp.Views;
 
+using System.ComponentModel;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using System.Windows.Input;
-using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Media;
 using MusicApp.Controls;
 using MusicApp.Core;
 using MusicApp.Core.Helpers;
@@ -35,22 +33,8 @@ using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 using MusicApp.Core.ViewModels;
 using MusicApp.Helpers;
-using Windows.ApplicationModel.Chat;
-using Windows.ApplicationModel.DataTransfer;
-using WinRT.Interop;
-using Microsoft.UI;
 using MusicApp.Native;
-using Windows.Graphics.Imaging;
-using Microsoft.UI.Xaml.Hosting;
-using Microsoft.UI.Xaml.Media.Imaging;
-using System.Runtime.InteropServices.WindowsRuntime;
-using System.ComponentModel;
-using Windows.Foundation;
-using System.Collections.Immutable;
-using System.Drawing.Drawing2D;
-using System.Drawing;
-using System.Drawing.Imaging;
-using Windows.Win32.Foundation;
+using WinRT.Interop;
 
 public partial class MainWindow : Window, IAppWindow
 {
@@ -140,7 +124,7 @@ public partial class MainWindow : Window, IAppWindow
 
     public event CancelEventHandler? Closing;
 
-    public new event EventHandler Closed;
+    public new event EventHandler? Closed;
 
     public void Show(bool activateWindow = true)
     {

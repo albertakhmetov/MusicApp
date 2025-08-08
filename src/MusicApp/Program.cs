@@ -79,7 +79,7 @@ public class Program
             var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
             lifetime.ApplicationStarted.Register(() => sm.Release());
 
-            if (sm.Wait(TimeSpan.FromSeconds(10)))
+            if (sm.Wait(TimeSpan.FromSeconds(5)))
             {
                 Application.Start(_ =>
                 {
@@ -115,7 +115,7 @@ public class Program
 
             while (process.MainWindowHandle == IntPtr.Zero)
             {
-                Task.Delay(TimeSpan.FromMilliseconds(500)).Wait();
+                Task.Delay(TimeSpan.FromMilliseconds(1000)).Wait();
             }
 
             var processWindowHandle = process.MainWindowHandle;
@@ -170,12 +170,12 @@ public class Program
         builder.Services.AddSingleton<ITaskbarMediaButtonsService, TaskbarMediaButtonsService>();
         builder.Services.AddSingleton<ITaskbarMediaCoverService, TaskbarMediaCoverService>();
 
-        builder.Services.AddSingleton(serviceProvider => ILazyDependency<ISingleInstanceService>.Create(serviceProvider));
-        builder.Services.AddSingleton(serviceProvider => ILazyDependency<ITaskbarMediaButtonsService>.Create(serviceProvider));
-        builder.Services.AddSingleton(serviceProvider => ILazyDependency<ITaskbarMediaCoverService>.Create(serviceProvider));
+        builder.Services.AddLazySingleton<ISingleInstanceService>();
+        builder.Services.AddLazySingleton<ITaskbarMediaButtonsService>();
+        builder.Services.AddLazySingleton<ITaskbarMediaCoverService>();
 
-        builder.Services.AddKeyedSingleton<IAppWindow>("Main", (serviceProvider, _) => serviceProvider.GetRequiredService<MainWindow>());
-        builder.Services.AddKeyedSingleton<IAppWindow>("Settings", (serviceProvider, _) => serviceProvider.GetRequiredService<SettingsWindow>());
+        builder.Services.AddKeyedSingleton<IAppWindow>("Main", (sp, _) => sp.GetRequiredService<MainWindow>());
+        builder.Services.AddKeyedSingleton<IAppWindow>("Settings", (sp, _) => sp.GetRequiredService<SettingsWindow>());
 
         builder.Services.AddLazyKeyedSingleton<IAppWindow>("Main");
         builder.Services.AddLazyKeyedSingleton<IAppWindow>("Settings");
