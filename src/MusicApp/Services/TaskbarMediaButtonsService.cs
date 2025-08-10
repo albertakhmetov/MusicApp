@@ -46,7 +46,7 @@ internal class TaskbarMediaButtonsService : ITaskbarMediaButtonsService
     public TaskbarMediaButtonsService(
         ISystemEventsService systemEventsService,
         IPlaybackService playbackService,
-        [FromKeyedServices("Main")] IAppWindow appWindow)
+        IAppWindow appWindow)
     {
         ArgumentNullException.ThrowIfNull(systemEventsService);
         ArgumentNullException.ThrowIfNull(playbackService);

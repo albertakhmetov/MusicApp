@@ -19,7 +19,7 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
         
-        <TitleBar Name="TitleBar" Title="{x:Bind Title}">
+        <TitleBar Name="TitleBar">
             <TitleBar.LeftHeader>
                 <FontIcon Glyph="&#xE713;" Margin="12,12,0,12"/>
             </TitleBar.LeftHeader>

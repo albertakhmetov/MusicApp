@@ -30,23 +30,31 @@ using MusicApp.Core.ViewModels;
 
 public sealed partial class PlayerView : UserControl
 {
+    private readonly ITaskbarMediaButtonsService taskbarMediaButtonsService;
+    private readonly ITaskbarMediaCoverService taskbarMediaCoverService;
+
     public PlayerView(
         IApp app,
         IShellService shellService,
         PlayerViewModel playerViewModel,
-        PlaylistViewModel playlistViewModel)
+        PlaylistViewModel playlistViewModel,
+        ITaskbarMediaButtonsService taskbarMediaButtonsService,
+        ITaskbarMediaCoverService taskbarMediaCoverService)
     {
         ArgumentNullException.ThrowIfNull(app);
         ArgumentNullException.ThrowIfNull(shellService);
         ArgumentNullException.ThrowIfNull(playerViewModel);
         ArgumentNullException.ThrowIfNull(playlistViewModel);
+        ArgumentNullException.ThrowIfNull(taskbarMediaCoverService);
+
+        this.taskbarMediaButtonsService = taskbarMediaButtonsService;
+        this.taskbarMediaCoverService = taskbarMediaCoverService;
 
         ShellService = shellService;
         PlayerViewModel = playerViewModel;
         PlaylistViewModel = playlistViewModel;
 
         SettingsCommand = new RelayCommand(_ => app.GetWindow<SettingsViewModel>().Show());
-
 
         InitializeComponent();
     }

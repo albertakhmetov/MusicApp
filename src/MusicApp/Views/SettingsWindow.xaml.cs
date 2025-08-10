@@ -49,11 +49,23 @@ using Microsoft.UI.Composition;
 
 public sealed partial class SettingsWindow : Window, IAppWindow
 {
+    private IDisposable themeSubscription;
+
     private readonly IHostApplicationLifetime lifetime;
 
-    public SettingsWindow(IHostApplicationLifetime lifetime)
+    public SettingsWindow(
+        IHostApplicationLifetime lifetime,
+        ISettingsService settingsService,
+        ISystemEventsService systemEventsService)
     {
+        if (SynchronizationContext.Current == null)
+        {
+            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
+        }
+
         ArgumentNullException.ThrowIfNull(lifetime);
+        ArgumentNullException.ThrowIfNull(settingsService);
+        ArgumentNullException.ThrowIfNull(systemEventsService);
 
         this.lifetime = lifetime;
 
@@ -65,7 +77,7 @@ public sealed partial class SettingsWindow : Window, IAppWindow
         presenter.PreferredMinimumHeight = 600;
         presenter.IsMinimizable = false;
         presenter.IsMaximizable = false;
-        //   presenter.IsAlwaysOnTop = true;
+        presenter.IsAlwaysOnTop = true;
         presenter.SetBorderAndTitleBar(true, true);
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
@@ -74,7 +86,8 @@ public sealed partial class SettingsWindow : Window, IAppWindow
 
         if (Content is Grid grid)
         {
-            var titleBar = grid.FindName("TitleBar") as TitleBar;
+            var titleBar = (TitleBar)grid.FindName("TitleBar");
+            titleBar.Title = Title;
             SetTitleBar(titleBar);
         }
 
@@ -82,6 +95,15 @@ public sealed partial class SettingsWindow : Window, IAppWindow
         AppWindow.Closing += OnWindowClosing;
 
         base.Closed += OnWindowClosed;
+
+        themeSubscription = Observable
+            .CombineLatest(
+                settingsService.WindowTheme,
+                systemEventsService.AppDarkTheme,
+                (theme, isSystemDark) => theme == WindowTheme.Dark || theme == WindowTheme.System && isSystemDark)
+            .DistinctUntilChanged()
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(isDarkTheme => this.UpdateTheme(isDarkTheme));
     }
 
     public nint Handle => WindowNative.GetWindowHandle(this);
@@ -106,6 +128,9 @@ public sealed partial class SettingsWindow : Window, IAppWindow
 
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
+        themeSubscription.Dispose();
+
+        base.Closed -= OnWindowClosed;
         Closed?.Invoke(this, EventArgs.Empty);
     }
 }

@@ -131,29 +131,7 @@ public partial class _MainWindow : Window
 
     public void Hide() => AppWindow.Hide();
 
-    public async Task<WindowCaptureData?> Capture()
-    {
-        LiveBorder.Visibility = Visibility.Visible;
 
-        try
-        {
-            var renderTargetBitmap = new RenderTargetBitmap();
-            await renderTargetBitmap.RenderAsync(Content);
-
-            var pixels = await renderTargetBitmap.GetPixelsAsync();
-
-            return new WindowCaptureData
-            {
-                Width = renderTargetBitmap.PixelWidth,
-                Height = renderTargetBitmap.PixelHeight,
-                Pixels = pixels.ToArray()
-            };
-        }
-        finally
-        {
-            LiveBorder.Visibility = Visibility.Collapsed;
-        }
-    }
 
     private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {

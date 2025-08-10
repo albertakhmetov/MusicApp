@@ -40,7 +40,7 @@ public sealed partial class SettingsView : UserControl
     {
         ArgumentNullException.ThrowIfNull(settingsViewModel);
 
-            ViewModel = settingsViewModel;
+        ViewModel = settingsViewModel;
 
         InitializeComponent();
     }

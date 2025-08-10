@@ -17,18 +17,42 @@
  *
  */
 namespace MusicApp.Views;
+
+using System.Reactive.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Windows.Input;
+using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Media.Imaging;
 using MusicApp.Core;
 using MusicApp.Core.Helpers;
+using MusicApp.Core.Models;
+using MusicApp.Core.Services;
 using MusicApp.Helpers;
+using MusicApp.Native;
+using Windows.Foundation;
 using WinRT.Interop;
 
 public sealed partial class PlayerWindow : Window, IAppWindow
 {
-    public PlayerWindow()
+    private IDisposable themeSubscription;
+    private System.Drawing.Icon icon;
+
+    public PlayerWindow(
+        ISettingsService settingsService,
+        ISystemEventsService systemEventsService)
     {
+        if (SynchronizationContext.Current == null)
+        {
+            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
+        }
+
+        ArgumentNullException.ThrowIfNull(settingsService);
+        ArgumentNullException.ThrowIfNull(systemEventsService);
+
+        Procedure = new AppWindowProcedure(this);
+
         InitializeComponent();
 
         ExtendsContentIntoTitleBar = true;
@@ -44,12 +68,26 @@ public sealed partial class PlayerWindow : Window, IAppWindow
         MinimizeCommand = new RelayCommand(_ => presenter.Minimize());
         CloseCommand = new RelayCommand(_ => Close());
 
+        icon = System.Drawing.Icon.ExtractAssociatedIcon(IApp.ApplicationPath)!;
+        AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(icon.Handle));
+
         AppWindow.Resize(AppWindow.Size);
 
         base.Closed += OnWindowClosed;
+
+        themeSubscription = Observable
+            .CombineLatest(
+                settingsService.WindowTheme,
+                systemEventsService.AppDarkTheme,
+                (theme, isSystemDark) => theme == WindowTheme.Dark || theme == WindowTheme.System && isSystemDark)
+            .DistinctUntilChanged()
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(isDarkTheme => this.UpdateTheme(isDarkTheme));
     }
 
     public nint Handle => WindowNative.GetWindowHandle(this);
+
+    public IAppWindowProcedure Procedure { get; }
 
     public ICommand MinimizeCommand { get; }
 
@@ -67,6 +105,30 @@ public sealed partial class PlayerWindow : Window, IAppWindow
         AppWindow.Show();
     }
 
+    public async Task<WindowCaptureData?> Capture()
+    {
+        LiveBorder.Visibility = Visibility.Visible;
+
+        try
+        {
+            var renderTargetBitmap = new RenderTargetBitmap();
+            await renderTargetBitmap.RenderAsync(Content);
+
+            var pixels = await renderTargetBitmap.GetPixelsAsync();
+
+            return new WindowCaptureData
+            {
+                Width = renderTargetBitmap.PixelWidth,
+                Height = renderTargetBitmap.PixelHeight,
+                Pixels = pixels.ToArray()
+            };
+        }
+        finally
+        {
+            LiveBorder.Visibility = Visibility.Collapsed;
+        }
+    }
+
     private void OnContentGridLoaded(object sender, RoutedEventArgs e)
     {
         UpdateDragRectangles();
@@ -79,7 +141,11 @@ public sealed partial class PlayerWindow : Window, IAppWindow
 
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
+        themeSubscription.Dispose();
+
         Closed?.Invoke(this, EventArgs.Empty);
+
+        icon.Dispose();
     }
 
     private void UpdateDragRectangles()
