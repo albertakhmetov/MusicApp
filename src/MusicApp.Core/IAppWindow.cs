@@ -16,7 +16,7 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services;
+namespace MusicApp.Core;
 
 using System;
 using System.Collections.Generic;
@@ -30,17 +30,11 @@ public interface IAppWindow
 {
     nint Handle { get; }
 
-    IAppWindowProcedure? Procedure { get { return null; } }
+    string Title { get; }
 
-    event CancelEventHandler? Closing;
-
-    event EventHandler? Closed;
-
-    void Close();
-
-    void Show(bool activateWindow = true);
-
-    void Hide();
+    IAppWindowProcedure? Procedure { get { return null; } }    
 
     Task<WindowCaptureData?> Capture() => Task.FromResult<WindowCaptureData?>(null);
+
+    void Show();
 }

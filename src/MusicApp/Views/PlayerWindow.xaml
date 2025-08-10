@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="MusicApp.Views.PlayerWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:MusicApp.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="MainWindow">
+
+    <Window.SystemBackdrop>
+        <MicaBackdrop />
+    </Window.SystemBackdrop>
+
+    <Grid x:Name="ContentGrid" CornerRadius="8"  Loaded="OnContentGridLoaded" SizeChanged="OnContentGridSizeChanged">
+        <Grid.Resources>
+            <Style TargetType="Button" BasedOn="{StaticResource ControlButton}"/>
+            <Style TargetType="ToggleButton" BasedOn="{StaticResource ControlToggleButton}"/>
+        </Grid.Resources>
+
+        <Border 
+            x:Name="LiveBorder"
+            Visibility="Collapsed"
+            CornerRadius="8"
+            BorderBrush="{ThemeResource SystemAccentColor}"
+            BorderThickness="1"
+            Background="{ThemeResource ApplicationPageBackgroundThemeBrush }"/>
+
+        <StackPanel
+            x:Name="WindowControlsPanel"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Orientation="Horizontal">
+
+            <StackPanel.Resources>
+                <Style TargetType="FontIcon">
+                    <Setter Property="FontSize" Value="10"/>
+                </Style>
+            </StackPanel.Resources>
+
+            <Button Command="{x:Bind MinimizeCommand}">
+                <FontIcon Glyph="&#xE921;"/>
+            </Button>
+
+            <Button Command="{x:Bind CloseCommand}">
+                <FontIcon Glyph="&#xE8BB;"/>
+            </Button>
+        </StackPanel>
+
+    </Grid>
+</Window>

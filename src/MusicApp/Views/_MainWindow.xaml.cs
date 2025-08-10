@@ -39,44 +39,42 @@ using MusicApp.Helpers;
 using MusicApp.Native;
 using WinRT.Interop;
 
-public partial class MainWindow : Window, IAppWindow
+public partial class _MainWindow : Window
 {
     private readonly CompositeDisposable disposable = [];
     private readonly ISettingsService settingsService;
+    private readonly IApp app;
     private readonly ISystemEventsService systemEventsService;
     private readonly IHostApplicationLifetime lifetime;
 
-    public MainWindow(
+    public _MainWindow(
         IHostApplicationLifetime lifetime,
-        IAppService appService,
+        IApp app,
         IShellService shellService,
         ISettingsService settingsService,
         ISystemEventsService systemEventsService,
-        PlayerViewModel playerViewModel,
-        PlaylistViewModel playlistViewModel)
+        
     {
         ArgumentNullException.ThrowIfNull(lifetime);
-        ArgumentNullException.ThrowIfNull(appService);
+        ArgumentNullException.ThrowIfNull(app);
         ArgumentNullException.ThrowIfNull(shellService);
         ArgumentNullException.ThrowIfNull(settingsService);
         ArgumentNullException.ThrowIfNull(systemEventsService);
-        ArgumentNullException.ThrowIfNull(playerViewModel);
-        ArgumentNullException.ThrowIfNull(playlistViewModel);
+
 
         this.lifetime = lifetime;
+        this.app = app;
         this.settingsService = settingsService;
         this.systemEventsService = systemEventsService;
 
-        AppService = appService;
         ShellService = shellService;
-        PlayerViewModel = playerViewModel;
-        PlaylistViewModel = playlistViewModel;
 
-        Procedure = new AppWindowProcedure(this);
 
-        MinimizeCommand = new RelayCommand(_ => this.Minimize());
+       // Procedure = new AppWindowProcedure(this);
+
+      //  MinimizeCommand = new RelayCommand(_ => this.Minimize());
         CloseCommand = new RelayCommand(_ => this.Close());
-        SettingsCommand = new RelayCommand(_ => AppService.ShowSettings());
+        SettingsCommand = new RelayCommand(_ => this.app.GetWindow<SettingsViewModel>().Show());
 
         this.InitializeComponent();
 
@@ -91,10 +89,10 @@ public partial class MainWindow : Window, IAppWindow
         AppWindow.SetPresenter(presenter);
 
         var icon = System.Drawing.Icon
-            .ExtractAssociatedIcon(IFileService.ApplicationPath)!
+            .ExtractAssociatedIcon(IApp.ApplicationPath)!
             .DisposeWith(disposable);
         AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(icon.Handle));
-        AppWindow.Title = appService.AppInfo.ProductName;
+        AppWindow.Title = this.app.Info.ProductName;
 
         //  Closed += (_, _) => AppService.Exit();
 
@@ -111,11 +109,9 @@ public partial class MainWindow : Window, IAppWindow
 
     public IAppSliderValueConverter TimeValueConverter { get; } = new SliderTimeValueConverter();
 
-    public PlayerViewModel PlayerViewModel { get; }
 
-    public PlaylistViewModel PlaylistViewModel { get; }
 
-    public IAppService AppService { get; }
+    public IFileService AppService { get; }
 
     public IShellService ShellService { get; }
 
@@ -123,7 +119,6 @@ public partial class MainWindow : Window, IAppWindow
 
     public ICommand CloseCommand { get; }
 
-    public ICommand SettingsCommand { get; }
 
     public event CancelEventHandler? Closing;
 
@@ -200,20 +195,20 @@ public partial class MainWindow : Window, IAppWindow
 
     private void UpdateDragRectangles()
     {
-        var scale = this.GetDpi() / 96d;
+        //var scale = this.GetDpi() / 96d;
 
-        AppWindow.TitleBar.SetDragRectangles([
-            new Windows.Graphics.RectInt32(
-                0,
-                0,
-                ((HeaderGrid.ActualWidth - WindowControlsPanel.ActualWidth) * scale).ToInt32(),
-                (WindowControlsPanel.ActualHeight * scale).ToInt32()),
-            new Windows.Graphics.RectInt32(
-                0,
-                (WindowControlsPanel.ActualHeight * scale).ToInt32(),
-                (HeaderGrid.ActualWidth * scale).ToInt32(),
-                ((HeaderGrid.ActualHeight - WindowControlsPanel.ActualHeight) * scale).ToInt32())
-            ]);
+        //AppWindow.TitleBar.SetDragRectangles([
+        //    new Windows.Graphics.RectInt32(
+        //        0,
+        //        0,
+        //        ((HeaderGrid.ActualWidth - WindowControlsPanel.ActualWidth) * scale).ToInt32(),
+        //        (WindowControlsPanel.ActualHeight * scale).ToInt32()),
+        //    new Windows.Graphics.RectInt32(
+        //        0,
+        //        (WindowControlsPanel.ActualHeight * scale).ToInt32(),
+        //        (HeaderGrid.ActualWidth * scale).ToInt32(),
+        //        ((HeaderGrid.ActualHeight - WindowControlsPanel.ActualHeight) * scale).ToInt32())
+        //    ]);
     }
 
     private void OnGridLoaded(object sender, RoutedEventArgs e)
@@ -234,43 +229,7 @@ public partial class MainWindow : Window, IAppWindow
         UpdateDragRectangles();
     }
 
-    private void ListView_DoubleTapped(object sender, Microsoft.UI.Xaml.Input.DoubleTappedRoutedEventArgs e)
-    {
-        if (e.OriginalSource is FrameworkElement { DataContext: PlaylistItemViewModel model })
-        {
-            model.PlayCommand.Execute(model.MediaItem);
-        }
-    }
 
-    private void ListView_KeyUp(object sender, Microsoft.UI.Xaml.Input.KeyRoutedEventArgs e)
-    {
-        if (e.OriginalSource is ListViewItem { Content: PlaylistItemViewModel model })
-        {
-            switch (e.OriginalKey)
-            {
-                case Windows.System.VirtualKey.Space:
-                    model.PlayCommand.Execute(model.MediaItem);
-                    break;
 
-                case Windows.System.VirtualKey.Delete:
-                    model.RemoveCommand.Execute(model.MediaItem);
-                    break;
-            }
-        }
-    }
 
-    private void OnDragEnter(object sender, DragEventArgs e)
-    {
-        DragTarget.Visibility = Visibility.Visible;
-    }
-
-    private void OnDragLeave(object sender, DragEventArgs e)
-    {
-        DragTarget.Visibility = Visibility.Collapsed;
-    }
-
-    private void OnDropped(object sender, EventArgs e)
-    {
-        DragTarget.Visibility = Visibility.Collapsed;
-    }
 }

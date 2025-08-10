@@ -30,6 +30,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using MusicApp.Core;
 
 public class AppHost : IHost, IDisposable
 {
@@ -100,7 +101,7 @@ public class AppHost : IHost, IDisposable
                 var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
                 SynchronizationContext.SetSynchronizationContext(context);
 
-                var app = Services.GetRequiredService<App>();
+                var app = (App)Services.GetRequiredService<IApp>();
                 app.UnhandledException += (_, e) => logger.LogCritical(e.Exception, "Unhandled Exception");
             });
         }

@@ -36,23 +36,20 @@ public class SettingsViewModel : ViewModel
     private readonly CompositeDisposable disposable = [];
 
     private readonly ISettingsService settingsService;
-    private readonly IAppService appService;
+    private readonly IApp app;
     private readonly IShellService shellService;
 
     private WindowTheme windowTheme;
     private bool isAppRegistred;
 
-    public SettingsViewModel(
-        ISettingsService settingsService,
-        IAppService appService,
-        IShellService shellService)
+    public SettingsViewModel(ISettingsService settingsService, IApp app, IShellService shellService)
     {
         ArgumentNullException.ThrowIfNull(settingsService);
-        ArgumentNullException.ThrowIfNull(appService);
+        ArgumentNullException.ThrowIfNull(app);
         ArgumentNullException.ThrowIfNull(shellService);
 
         this.settingsService = settingsService;
-        this.appService = appService;
+        this.app = app;
         this.shellService = shellService;
 
         WindowThemes = [WindowTheme.System, WindowTheme.Dark, WindowTheme.Light];
@@ -84,15 +81,15 @@ public class SettingsViewModel : ViewModel
 
     public IImmutableList<WindowTheme> WindowThemes { get; }
 
-    public string ProductName => appService.AppInfo.ProductName;
+    public string ProductName => app.Info.ProductName;
 
-    public string Version => appService.AppInfo.FileVersion.ToString(3);
+    public string Version => app.Info.FileVersion.ToString(3);
 
-    public string LegalCopyright => appService.AppInfo.LegalCopyright ?? string.Empty;
+    public string LegalCopyright => app.Info.LegalCopyright ?? string.Empty;
 
-    public string ProductDescription => appService.AppInfo.ProductDescription ?? string.Empty;
+    public string ProductDescription => app.Info.ProductDescription ?? string.Empty;
 
-    public string ProductVersion => string.IsNullOrEmpty(appService.AppInfo.ProductVersion) ? string.Empty : $"Build {appService.AppInfo.ProductVersion}";
+    public string ProductVersion => string.IsNullOrEmpty(app.Info.ProductVersion) ? string.Empty : $"Build {app.Info.ProductVersion}";
 
     public void Dispose()
     {

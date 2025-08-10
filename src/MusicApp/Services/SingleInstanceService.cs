@@ -27,6 +27,7 @@ using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
+using MusicApp.Core;
 using MusicApp.Core.Commands;
 using MusicApp.Core.Helpers;
 using MusicApp.Core.Services;

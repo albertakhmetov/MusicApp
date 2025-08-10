@@ -44,60 +44,63 @@ using Windows.Win32;
 using Windows.Win32.UI.Shell;
 using Microsoft.Windows.AppLifecycle;
 using MusicApp.Core;
+using Windows.Storage.Pickers;
+using WinRT.Interop;
+using MusicApp.Core.Helpers;
 
 internal class AppService : IAppService
 {
-    private readonly ILazyDependency<IAppWindow> appWindow;
-    private IAppWindow? settingsWindow;
+    private readonly IAppWindow appWindow;
 
-    public AppService([FromKeyedServices("Settings")] ILazyDependency<IAppWindow> appWindow)
+    public AppService(IAppWindow appWindow)
     {
         ArgumentNullException.ThrowIfNull(appWindow);
 
         this.appWindow = appWindow;
-
-        AppInfo = LoadAppInfo();
     }
 
-    public AppInfo AppInfo { get; }
-
-    public async Task ShowSettings()
+    public async Task<IList<string>> PickFilesForOpenAsync(IImmutableList<FileType> fileTypes)
     {
-        if (settingsWindow is null)
-        {
-            settingsWindow = appWindow.Resolve();
-            settingsWindow.Closing += OnSettingsWindowClosing;
+        var openPicker = new FileOpenPicker();
+        InitializeWithWindow.Initialize(openPicker, appWindow.Handle);
 
-            await Task.Delay(TimeSpan.FromMilliseconds(100));
+        openPicker.ViewMode = PickerViewMode.Thumbnail;
+        openPicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+
+        fileTypes.ForEach(x => openPicker.FileTypeFilter.Add(x.Extension));
+
+        var files = await openPicker.PickMultipleFilesAsync();
+        return files?.Select(x => x.Path).ToArray() ?? [];
+    }
+
+    public async Task<string?> PickFileForOpenAsync(IImmutableList<FileType> fileTypes)
+    {
+        var openPicker = new FileOpenPicker();
+        InitializeWithWindow.Initialize(openPicker, appWindow.Handle);
+
+        openPicker.ViewMode = PickerViewMode.Thumbnail;
+        openPicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+
+        fileTypes.ForEach(x => openPicker.FileTypeFilter.Add(x.Extension));
+
+        var file = await openPicker.PickSingleFileAsync();
+        return file?.Path;
+    }
+
+    public async Task<string?> PickFileForSaveAsync(IImmutableList<FileType> fileTypes, string? suggestedFileName = null)
+    {
+        var savePicker = new FileSavePicker();
+        InitializeWithWindow.Initialize(savePicker, appWindow.Handle);
+
+        savePicker.SuggestedFileName = suggestedFileName ?? string.Empty;
+        savePicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+
+        foreach (var category in fileTypes.GroupBy(x => x.Description))
+        {
+            savePicker.FileTypeChoices.Add(category.Key, category.Select(x => x.Extension).ToArray());
         }
 
-        settingsWindow.Show(true);
-    }
-
-    private AppInfo LoadAppInfo()
-    {
-        var info = FileVersionInfo.GetVersionInfo(typeof(AppService).Assembly.Location);
-
-        return new AppInfo
-        {
-            ProductName = info.ProductName ?? "MusicApp",
-            ProductVersion = info.ProductVersion,
-            ProductDescription = info.Comments,
-            LegalCopyright = info.LegalCopyright,
-            FileVersion = new Version(
-                info.FileMajorPart,
-                info.FileMinorPart,
-                info.FileBuildPart,
-                info.FilePrivatePart),
-
-            IsPreRelease = Regex.IsMatch(info.ProductVersion ?? "", "[a-zA-Z]")
-        };
-    }
-
-    private void OnSettingsWindowClosing(object? sender, CancelEventArgs args)
-    {
-        args.Cancel = true;
-
-        (sender as IAppWindow)?.Hide();
+        var file = await savePicker.PickSaveFileAsync();
+        return file?.Path;
     }
 }

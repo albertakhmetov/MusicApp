@@ -43,8 +43,9 @@ using Windows.Foundation;
 using Windows.Foundation.Collections;
 using WinRT.Interop;
 using System.ComponentModel;
+using MusicApp.Core;
 
-public sealed partial class SettingsWindow : Window, IAppWindow
+public sealed partial class SettingsWindow : Window//, IAppWindow
 {
     private readonly CompositeDisposable disposable = [];
     private readonly ISettingsService settingsService;

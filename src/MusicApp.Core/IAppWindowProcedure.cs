@@ -16,17 +16,21 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services;
+namespace MusicApp.Core;
 
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
+using System.Reactive;
 using System.Text;
 using System.Threading.Tasks;
-using MusicApp.Core.Models;
 
-public interface IAppEnvironment
+public interface IAppWindowProcedure
 {
-    FileVersionInfo Info { get; }
+    IDisposable Subscribe(uint message, IReceiver receiver);
+
+    public interface IReceiver
+    {
+        bool Process(uint message, nuint wParam, nint lParam);
+    }
 }
