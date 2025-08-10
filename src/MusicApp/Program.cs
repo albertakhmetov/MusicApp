@@ -138,7 +138,6 @@ public class Program
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<IPlaylistService, PlaylistService>();
 
-
         services.AddScoped<ScopeDataService>();
         services.AddScoped<IAppService, AppService>();
 
@@ -146,6 +145,9 @@ public class Program
         services.AddKeyedScoped<Window, SettingsWindow>(nameof(SettingsViewModel));
 
         services.AddScoped(sp => sp.GetRequiredService<ScopeDataService>().Window);
+
+        services.AddScoped<ITaskbarMediaButtonsService, TaskbarMediaButtonsService>();
+        services.AddScoped<ITaskbarMediaCoverService, TaskbarMediaCoverService>();
 
         services.AddKeyedScoped<UserControl, PlayerView>(nameof(PlayerViewModel));
         services.AddKeyedScoped<UserControl, SettingsView>(nameof(SettingsViewModel));

@@ -13,7 +13,7 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <Grid x:Name="ContentGrid" CornerRadius="8"  Loaded="OnContentGridLoaded" SizeChanged="OnContentGridSizeChanged">
+    <Grid x:Name="ContentGrid" CornerRadius="8" Loaded="OnContentGridLoaded" SizeChanged="OnContentGridSizeChanged">
         <Grid.Resources>
             <Style TargetType="Button" BasedOn="{StaticResource ControlButton}"/>
             <Style TargetType="ToggleButton" BasedOn="{StaticResource ControlToggleButton}"/>

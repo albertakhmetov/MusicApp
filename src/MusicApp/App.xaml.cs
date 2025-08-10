@@ -50,6 +50,7 @@ using System.Reactive.Linq;
 using MusicApp.Core.Helpers;
 using System.Windows.Navigation;
 using System.Text.RegularExpressions;
+using Windows.Foundation;
 
 public partial class App : Application, IDisposable, IApp
 {
@@ -92,8 +93,6 @@ public partial class App : Application, IDisposable, IApp
                 RequestedTheme = ApplicationTheme.Light;
                 break;
         }
-
-        InitSubscriptions();
     }
 
     public AppInfo Info { get; }
@@ -119,7 +118,7 @@ public partial class App : Application, IDisposable, IApp
 
             if (window.Content is Grid grid)
             {
-                grid.Children.Insert(0, view);
+                grid.Children.Insert(1, view);
 
                 if (window.AppWindow.Presenter is OverlappedPresenter presenter && presenter.HasTitleBar)
                 {
@@ -152,11 +151,13 @@ public partial class App : Application, IDisposable, IApp
 
         if (sender is Window window && name?.EndsWith(windowSuffix) is true)
         {
-            var viewModelName = $"{name.Substring(0, name.Length - windowSuffix.Length)}ViewModel";
+            var viewModelName = $"{name[..^windowSuffix.Length]}ViewModel";
 
             if (windowScopes.TryGetValue(viewModelName, out var scope))
             {
+                window.Content = null;
                 window.Closed -= OnWindowClosed;
+
                 scope.Dispose();
 
                 windowScopes.Remove(viewModelName);
@@ -221,35 +222,6 @@ public partial class App : Application, IDisposable, IApp
     //    });
     //}
 
-    private void InitSubscriptions()
-    {
-        if (SynchronizationContext.Current == null)
-        {
-            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
-        }
-
-        Observable
-            .CombineLatest(
-                settingsService.WindowTheme,
-                systemEventsService.AppDarkTheme,
-                (theme, isSystemDark) => theme == WindowTheme.Dark || theme == WindowTheme.System && isSystemDark)
-            .DistinctUntilChanged()
-            .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(isDarkTheme => UpdateTheme(isDarkTheme))
-            .DisposeWith(disposable);
-    }
-
-    private void UpdateTheme(bool isDarkTheme)
-    {
-        foreach (var scope in windowScopes.Values)
-        {
-            if (scope.ServiceProvider.GetRequiredService<IAppWindow>() is Window window)
-            {
-                window.UpdateTheme(isDarkTheme);
-            }
-        }
-    }
-
     private static AppInfo GetAppInfo()
     {
         var info = FileVersionInfo.GetVersionInfo(typeof(App).Assembly.Location);
@@ -267,14 +239,5 @@ public partial class App : Application, IDisposable, IApp
 
             IsPreRelease = Regex.IsMatch(info.ProductVersion ?? "", "[a-zA-Z]")
         };
-    }
-
-    public sealed class WindowData
-    {
-        public required Window Window { get; init; }
-
-        public required IServiceScope Scope { get; init; }
-
-        public IServiceProvider ServiceProvider => Scope.ServiceProvider;
     }
 }

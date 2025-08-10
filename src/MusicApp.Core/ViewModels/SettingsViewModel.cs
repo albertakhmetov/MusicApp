@@ -31,7 +31,7 @@ using MusicApp.Core.Helpers;
 using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 
-public class SettingsViewModel : ViewModel
+public class SettingsViewModel : ViewModel, IDisposable
 {
     private readonly CompositeDisposable disposable = [];
 
@@ -93,7 +93,7 @@ public class SettingsViewModel : ViewModel
 
     public void Dispose()
     {
-        if (!disposable.IsDisposed)
+        if (disposable.IsDisposed is false)
         {
             disposable.Dispose();
         }

@@ -20,7 +20,7 @@ using MusicApp.Core.Services;
 using MusicApp.Native;
 using MusicApp.Views;
 
-internal class TaskbarMediaCoverService : ITaskbarMediaCoverService
+internal class TaskbarMediaCoverService : ITaskbarMediaCoverService, IDisposable
 {
     private readonly CompositeDisposable disposable = [];
 
@@ -30,9 +30,7 @@ internal class TaskbarMediaCoverService : ITaskbarMediaCoverService
     private readonly IAppWindow window;
     private ImageData? imageData;
 
-    public TaskbarMediaCoverService(
-        IPlaybackService playbackService,
-        [FromKeyedServices("Main")] IAppWindow window)
+    public TaskbarMediaCoverService(IPlaybackService playbackService, IAppWindow window)
     {
         ArgumentNullException.ThrowIfNull(playbackService);
         ArgumentNullException.ThrowIfNull(window);
