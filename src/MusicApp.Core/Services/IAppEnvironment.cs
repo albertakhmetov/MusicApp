@@ -20,18 +20,13 @@ namespace MusicApp.Core.Services;
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MusicApp.Core.Models;
-using MusicApp.Core.ViewModels;
 
-public interface IAppService
+public interface IAppEnvironment
 {
-    static string AppUserModelID => "com.albertakhmetov.MusicApp";
-
-    AppInfo AppInfo { get; }
-
-    Task ShowSettings();
+    FileVersionInfo Info { get; }
 }

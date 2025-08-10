@@ -21,11 +21,14 @@ namespace MusicApp.Views;
 using System.ComponentModel;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Windows.Input;
+using Microsoft.Extensions.Hosting;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Imaging;
 using MusicApp.Controls;
 using MusicApp.Core;
 using MusicApp.Core.Helpers;
@@ -41,28 +44,28 @@ public partial class MainWindow : Window, IAppWindow
     private readonly CompositeDisposable disposable = [];
     private readonly ISettingsService settingsService;
     private readonly ISystemEventsService systemEventsService;
-    private readonly IPlaybackService playbackService;
+    private readonly IHostApplicationLifetime lifetime;
 
     public MainWindow(
+        IHostApplicationLifetime lifetime,
         IAppService appService,
         IShellService shellService,
         ISettingsService settingsService,
         ISystemEventsService systemEventsService,
-        IPlaybackService playbackService,
         PlayerViewModel playerViewModel,
         PlaylistViewModel playlistViewModel)
     {
+        ArgumentNullException.ThrowIfNull(lifetime);
         ArgumentNullException.ThrowIfNull(appService);
         ArgumentNullException.ThrowIfNull(shellService);
         ArgumentNullException.ThrowIfNull(settingsService);
         ArgumentNullException.ThrowIfNull(systemEventsService);
-        ArgumentNullException.ThrowIfNull(playbackService);
         ArgumentNullException.ThrowIfNull(playerViewModel);
         ArgumentNullException.ThrowIfNull(playlistViewModel);
 
+        this.lifetime = lifetime;
         this.settingsService = settingsService;
         this.systemEventsService = systemEventsService;
-        this.playbackService = playbackService;
 
         AppService = appService;
         ShellService = shellService;
@@ -70,7 +73,7 @@ public partial class MainWindow : Window, IAppWindow
         PlaylistViewModel = playlistViewModel;
 
         Procedure = new AppWindowProcedure(this);
-        
+
         MinimizeCommand = new RelayCommand(_ => this.Minimize());
         CloseCommand = new RelayCommand(_ => this.Close());
         SettingsCommand = new RelayCommand(_ => AppService.ShowSettings());
@@ -103,7 +106,7 @@ public partial class MainWindow : Window, IAppWindow
     }
 
     public nint Handle => WindowNative.GetWindowHandle(this);
-    
+
     public IAppWindowProcedure Procedure { get; }
 
     public IAppSliderValueConverter TimeValueConverter { get; } = new SliderTimeValueConverter();
@@ -133,11 +136,28 @@ public partial class MainWindow : Window, IAppWindow
 
     public void Hide() => AppWindow.Hide();
 
-    public IDisposable StartCapture()
+    public async Task<WindowCaptureData?> Capture()
     {
         LiveBorder.Visibility = Visibility.Visible;
 
-        return Disposable.Create(() => LiveBorder.Visibility = Visibility.Collapsed);
+        try
+        {
+            var renderTargetBitmap = new RenderTargetBitmap();
+            await renderTargetBitmap.RenderAsync(Content);
+
+            var pixels = await renderTargetBitmap.GetPixelsAsync();
+
+            return new WindowCaptureData
+            {
+                Width = renderTargetBitmap.PixelWidth,
+                Height = renderTargetBitmap.PixelHeight,
+                Pixels = pixels.ToArray()
+            };
+        }
+        finally
+        {
+            LiveBorder.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
@@ -175,7 +195,7 @@ public partial class MainWindow : Window, IAppWindow
             disposable.Dispose();
         }
 
-        AppService.Exit();
+        lifetime.StopApplication();
     }
 
     private void UpdateDragRectangles()
