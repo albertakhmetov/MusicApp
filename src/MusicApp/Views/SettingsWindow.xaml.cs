@@ -44,23 +44,18 @@ using Windows.Foundation.Collections;
 using WinRT.Interop;
 using System.ComponentModel;
 using MusicApp.Core;
+using Microsoft.Extensions.Hosting;
+using Microsoft.UI.Composition;
 
-public sealed partial class SettingsWindow : Window//, IAppWindow
+public sealed partial class SettingsWindow : Window, IAppWindow
 {
-    private readonly CompositeDisposable disposable = [];
-    private readonly ISettingsService settingsService;
-    private readonly ISystemEventsService systemEventsService;
+    private readonly IHostApplicationLifetime lifetime;
 
-    public SettingsWindow(ISettingsService settingsService, ISystemEventsService systemEventsService, SettingsViewModel viewModel)
+    public SettingsWindow(IHostApplicationLifetime lifetime)
     {
-        ArgumentNullException.ThrowIfNull(settingsService);
-        ArgumentNullException.ThrowIfNull(systemEventsService);
-        ArgumentNullException.ThrowIfNull(viewModel);
+        ArgumentNullException.ThrowIfNull(lifetime);
 
-        this.settingsService = settingsService;
-        this.systemEventsService = systemEventsService;
-
-        ViewModel = viewModel;
+        this.lifetime = lifetime;
 
         InitializeComponent();
 
@@ -70,70 +65,47 @@ public sealed partial class SettingsWindow : Window//, IAppWindow
         presenter.PreferredMinimumHeight = 600;
         presenter.IsMinimizable = false;
         presenter.IsMaximizable = false;
-        presenter.IsAlwaysOnTop = true;
+        //   presenter.IsAlwaysOnTop = true;
         presenter.SetBorderAndTitleBar(true, true);
         AppWindow.SetPresenter(presenter);
         AppWindow.IsShownInSwitchers = false;
 
         ExtendsContentIntoTitleBar = true;
 
-        SetTitleBar(AppTitleBar);
+        if (Content is Grid grid)
+        {
+            var titleBar = grid.FindName("TitleBar") as TitleBar;
+            SetTitleBar(titleBar);
+        }
 
         AppWindow.Resize(AppWindow.Size);
-        AppWindow.Closing += OnAppWindowClosing;
-        base.Closed += OnClosed;
+        AppWindow.Closing += OnWindowClosing;
 
-        InitSubscriptions();
+        base.Closed += OnWindowClosed;
     }
-
-    public SettingsViewModel ViewModel { get; }
 
     public nint Handle => WindowNative.GetWindowHandle(this);
 
-    public void Show(bool activateWindow = true)
+    public new event EventHandler? Closed;
+
+    public void Show()
     {
-        AppWindow.Show(activateWindow);
+        AppWindow.Show();
     }
 
-    public void Hide() => AppWindow.Hide();
-
-    public event CancelEventHandler? Closing;
-
-    public new event EventHandler Closed;
-
-    private void OnAppWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
+    private void OnWindowClosing(AppWindow sender, AppWindowClosingEventArgs args)
     {
-        var e = new CancelEventArgs();
-        Closing?.Invoke(this, e);
+        var isAppStopped = lifetime.ApplicationStopping.IsCancellationRequested || lifetime.ApplicationStopped.IsCancellationRequested;
 
-        args.Cancel = e.Cancel;
-    }
-
-    private void InitSubscriptions()
-    {
-        if (SynchronizationContext.Current == null)
+        if (isAppStopped is false)
         {
-            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
+            args.Cancel = true;
+            AppWindow.Hide();
         }
-
-        Observable
-            .CombineLatest(
-                settingsService.WindowTheme,
-                systemEventsService.AppDarkTheme,
-                (theme, isSystemDark) => theme == WindowTheme.Dark || theme == WindowTheme.System && isSystemDark)
-            .DistinctUntilChanged()
-            .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(isDarkTheme => this.UpdateTheme(isDarkTheme))
-            .DisposeWith(disposable);
     }
 
-    private void OnClosed(object sender, WindowEventArgs args)
+    private void OnWindowClosed(object sender, WindowEventArgs args)
     {
         Closed?.Invoke(this, EventArgs.Empty);
-
-        if (!disposable.IsDisposed)
-        {
-            disposable.Dispose();
-        }
     }
 }

@@ -108,6 +108,7 @@ public partial class App : Application, IDisposable, IApp
 
             var window = scope.ServiceProvider.GetRequiredKeyedService<Window>(viewModelName);
             window.Title = Info.ProductName;
+            window.Closed += OnWindowClosed;
 
             var scopeData = scope.ServiceProvider.GetRequiredService<ScopeDataService>();
             scopeData.Init((IAppWindow)window);
@@ -118,7 +119,12 @@ public partial class App : Application, IDisposable, IApp
 
             if (window.Content is Grid grid)
             {
-                grid.Children.Insert(0, view);                                   
+                grid.Children.Insert(0, view);
+
+                if (window.AppWindow.Presenter is OverlappedPresenter presenter && presenter.HasTitleBar)
+                {
+                    Grid.SetRow(view, 1);
+                }
             }
             else
             {
@@ -141,12 +147,20 @@ public partial class App : Application, IDisposable, IApp
 
     private void OnWindowClosed(object sender, WindowEventArgs args)
     {
-        if (sender is Window window && windowScopes.TryGetValue(window.GetType().Name, out var scope))
-        {
-            window.Closed -= OnWindowClosed;
-            scope.Dispose();
+        const string windowSuffix = "Window";
+        var name = sender?.GetType().Name;
 
-            windowScopes.Remove(window.GetType().Name);
+        if (sender is Window window && name?.EndsWith(windowSuffix) is true)
+        {
+            var viewModelName = $"{name.Substring(0, name.Length - windowSuffix.Length)}ViewModel";
+
+            if (windowScopes.TryGetValue(viewModelName, out var scope))
+            {
+                window.Closed -= OnWindowClosed;
+                scope.Dispose();
+
+                windowScopes.Remove(viewModelName);
+            }
         }
     }
 
@@ -156,6 +170,7 @@ public partial class App : Application, IDisposable, IApp
 
         mainWindow = GetWindow<PlayerViewModel>();
         mainWindow.Show();
+        mainWindow.Closed += (_, _) => lifetime.StopApplication();
 
         //try
         //{
