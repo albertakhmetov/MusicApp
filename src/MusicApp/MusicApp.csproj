@@ -72,6 +72,7 @@
 		<None Remove="Controls\DragTargetControl.xaml" />
 		<None Remove="Styles.xaml" />
 		<None Remove="Views\PlayerView.xaml" />
+		<None Remove="Views\SettingsView.xaml" />
 		<None Remove="Views\SettingsWindow.xaml" />
 		<None Remove="Views\_MainWindow.xaml" />
 	</ItemGroup>
@@ -124,6 +125,9 @@
 		<None Update="nlog.config">
 		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
+		<Page Update="Views\SettingsView.xaml">
+		  <Generator>MSBuild:Compile</Generator>
+		</Page>
 		<Page Update="Views\PlayerView.xaml">
 		  <Generator>MSBuild:Compile</Generator>
 		</Page>

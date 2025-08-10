@@ -45,6 +45,8 @@ public sealed partial class PlayerWindow : Window, IAppWindow
         CloseCommand = new RelayCommand(_ => Close());
 
         AppWindow.Resize(AppWindow.Size);
+
+        base.Closed += OnWindowClosed;
     }
 
     public nint Handle => WindowNative.GetWindowHandle(this);
@@ -52,6 +54,8 @@ public sealed partial class PlayerWindow : Window, IAppWindow
     public ICommand MinimizeCommand { get; }
 
     public ICommand CloseCommand { get; }
+
+    public new event EventHandler? Closed;
 
     public void Hide()
     {
@@ -71,6 +75,11 @@ public sealed partial class PlayerWindow : Window, IAppWindow
     private void OnContentGridSizeChanged(object sender, SizeChangedEventArgs e)
     {
         UpdateDragRectangles();
+    }
+
+    private void OnWindowClosed(object sender, WindowEventArgs args)
+    {
+        Closed?.Invoke(this, EventArgs.Empty);
     }
 
     private void UpdateDragRectangles()

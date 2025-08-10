@@ -148,6 +148,7 @@ public class Program
         services.AddScoped(sp => sp.GetRequiredService<ScopeDataService>().Window);
 
         services.AddKeyedScoped<UserControl, PlayerView>(nameof(PlayerViewModel));
+        services.AddKeyedScoped<UserControl, SettingsView>(nameof(SettingsViewModel));
 
         services.AddScoped<PlayerViewModel>();
         services.AddScoped<PlaylistViewModel>();

@@ -32,7 +32,9 @@ public interface IAppWindow
 
     string Title { get; }
 
-    IAppWindowProcedure? Procedure { get { return null; } }    
+    IAppWindowProcedure? Procedure { get { return null; } }
+
+    event EventHandler? Closed;
 
     Task<WindowCaptureData?> Capture() => Task.FromResult<WindowCaptureData?>(null);
 
