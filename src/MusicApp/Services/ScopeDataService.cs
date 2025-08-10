@@ -16,21 +16,30 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services;
+namespace MusicApp.Services;
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reactive;
 using System.Text;
 using System.Threading.Tasks;
+using MusicApp.Core;
 
-public interface IAppWindowProcedure
+internal class ScopeDataService : IDisposable
 {
-    IDisposable Subscribe(uint message, IReceiver receiver);
+    private IAppWindow? window;
 
-    public interface IReceiver
+    public IAppWindow Window => window ?? throw new InvalidOperationException("IAppWindow isn't initialized");
+
+    public void Init(IAppWindow window)
     {
-        bool Process(uint message, nuint wParam, nint lParam);
+        ArgumentNullException.ThrowIfNull(window);
+
+        this.window = window;
+    }
+
+    public void Dispose()
+    {
+        window = null;
     }
 }

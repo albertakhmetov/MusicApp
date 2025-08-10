@@ -24,7 +24,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MusicApp.Core.Models;
-using MusicApp.Core.Services;
 using Windows.Media.Core;
 using Windows.Storage;
 using Windows.Storage.FileProperties;
@@ -39,6 +38,7 @@ using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Windowing;
 using System.Runtime.InteropServices;
 using System.ComponentModel;
+using MusicApp.Core;
 
 static class Extensions
 {

@@ -16,22 +16,37 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services;
+namespace MusicApp.Core;
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MusicApp.Core.Models;
 using MusicApp.Core.ViewModels;
 
-public interface IAppService
+public interface IApp
 {
-    Task<IList<string>> PickFilesForOpenAsync(IImmutableList<FileType> fileTypes);
+    static string ApplicationPath
+    {
+        get
+        {
+            var processModule = Process.GetCurrentProcess().MainModule;
+            return processModule is null
+                ? throw new InvalidOperationException("Process.GetCurrentProcess().MainModule is null")
+                : processModule.FileName;
+        }
+    }
 
-    Task<string?> PickFileForOpenAsync(IImmutableList<FileType> fileTypes);
+#if DEBUG
+    static string AppUserModelID => "com.albertakhmetov.MusicApp.Debug";
+#else
+    static string AppUserModelID => "com.albertakhmetov.MusicApp";
+#endif
 
-    Task<string?> PickFileForSaveAsync(IImmutableList<FileType> fileTypes, string? suggestedFileName = null);
+    AppInfo Info { get; }
+
+    IAppWindow GetWindow<T>() where T : ViewModel;
 }

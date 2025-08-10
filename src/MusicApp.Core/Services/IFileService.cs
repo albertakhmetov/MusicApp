@@ -24,28 +24,11 @@ using MusicApp.Core.Models;
 
 public interface IFileService
 {
-    static string ApplicationPath
-    {
-        get
-        {
-            var processModule = Process.GetCurrentProcess().MainModule;
-            return processModule is null
-                ? throw new InvalidOperationException("Process.GetCurrentProcess().MainModule is null")
-                : processModule.FileName;
-        }
-    }
-
     string UserDataPath { get; }
 
     Stream? ReadUserFile(string fileName);
 
     Stream WriteUserFile(string fileName, bool overwrite);
-
-    Task<IList<string>> PickFilesForOpenAsync(IImmutableList<FileType> fileTypes);
-
-    Task<string?> PickFileForOpenAsync(IImmutableList<FileType> fileTypes);
-
-    Task<string?> PickFileForSaveAsync(IImmutableList<FileType> fileTypes, string? suggestedFileName = null);
 
     Task<IList<MediaItem>> LoadMediaItems(IEnumerable<string> fileNames);
 }

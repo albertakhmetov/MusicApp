@@ -19,17 +19,13 @@
 namespace MusicApp;
 
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using Microsoft.Windows.AppLifecycle;
 using MusicApp.Core;
 using MusicApp.Core.Commands;
@@ -52,9 +48,9 @@ public class Program
             return;
         }
 
-        PInvoke.SetCurrentProcessExplicitAppUserModelID(IAppService.AppUserModelID);
+        PInvoke.SetCurrentProcessExplicitAppUserModelID(IApp.AppUserModelID);
 
-        var appDirectory = Path.GetDirectoryName(IFileService.ApplicationPath);
+        var appDirectory = Path.GetDirectoryName(IApp.ApplicationPath);
         if (appDirectory is not null)
         {
             Directory.SetCurrentDirectory(appDirectory);
@@ -70,7 +66,7 @@ public class Program
 
     private static bool IsFirstInstance(string[] args)
     {
-        appInstance = AppInstance.FindOrRegisterForKey(IAppService.AppUserModelID);
+        appInstance = AppInstance.FindOrRegisterForKey(IApp.AppUserModelID);
 
         if (appInstance.IsCurrent is false)
         {
@@ -112,7 +108,7 @@ public class Program
         }
     }
 
-    private static readonly string InitializationMutexName = $"{IAppService.AppUserModelID}.InitializationMutex";
+    private static readonly string InitializationMutexName = $"{IApp.AppUserModelID}.InitializationMutex";
     private static AppInstance? appInstance;
 
     private static void CreateHost(IServiceCollection services)
@@ -123,25 +119,17 @@ public class Program
             builder.AddNLog();
         });
 
-        services.AddSingleton<App>();
-        services.AddSingleton<MainWindow>();
-        services.AddSingleton<SettingsWindow>();
+        services.AddSingleton<IApp, App>();
 
-        services.AddSingleton<IAppService, AppService>();
         services.AddSingleton<IShellService, ShellService>();
-        services.AddSingleton<ISingleInstanceService, SingleInstanceService>();
-        services.AddSingleton<ITaskbarMediaButtonsService, TaskbarMediaButtonsService>();
-        services.AddSingleton<ITaskbarMediaCoverService, TaskbarMediaCoverService>();
 
-        services.AddLazySingleton<ISingleInstanceService>();
-        services.AddLazySingleton<ITaskbarMediaButtonsService>();
-        services.AddLazySingleton<ITaskbarMediaCoverService>();
+        //services.AddSingleton<ISingleInstanceService, SingleInstanceService>();
+        //services.AddSingleton<ITaskbarMediaButtonsService, TaskbarMediaButtonsService>();
+        //services.AddSingleton<ITaskbarMediaCoverService, TaskbarMediaCoverService>();
 
-        services.AddKeyedSingleton<IAppWindow>("Main", (sp, _) => sp.GetRequiredService<MainWindow>());
-        services.AddKeyedSingleton<IAppWindow>("Settings", (sp, _) => sp.GetRequiredService<SettingsWindow>());
-
-        services.AddLazyKeyedSingleton<IAppWindow>("Main");
-        services.AddLazyKeyedSingleton<IAppWindow>("Settings");
+        //services.AddLazySingleton<ISingleInstanceService>();
+        //services.AddLazySingleton<ITaskbarMediaButtonsService>();
+        //services.AddLazySingleton<ITaskbarMediaCoverService>();
 
         services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<ISystemEventsService, SystemEventsService>();
@@ -150,15 +138,23 @@ public class Program
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<IPlaylistService, PlaylistService>();
 
-        services.AddSingleton<IAppCommandManager, AppCommandManager>();
+
+        services.AddScoped<ScopeDataService>();
+        services.AddScoped<IAppService, AppService>();
+
+        services.AddKeyedScoped<Window, PlayerWindow>(nameof(PlayerViewModel));
+        services.AddKeyedScoped<Window, SettingsWindow>(nameof(SettingsViewModel));
+
+        services.AddScoped(sp => sp.GetRequiredService<ScopeDataService>().Window);
+
+        services.AddKeyedScoped<UserControl, PlayerView>(nameof(PlayerViewModel));
+
+        services.AddScoped<PlayerViewModel>();
+        services.AddScoped<PlaylistViewModel>();
+        services.AddScoped<SettingsViewModel>();     
+        
+        services.AddScoped<IAppCommandManager, AppCommandManager>();
         services.AddTransient<IAppCommand<MediaItemAddCommand.Parameters>, MediaItemAddCommand>();
         services.AddTransient<IAppCommand<MediaItemRemoveCommand.Parameters>, MediaItemRemoveCommand>();
-
-        services.AddSingleton<PlayerViewModel>();
-        services.AddSingleton<PlaylistViewModel>();
-        services.AddSingleton<SettingsViewModel>();
     }
-
-
-
 }

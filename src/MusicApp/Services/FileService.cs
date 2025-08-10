@@ -36,15 +36,9 @@ using MusicApp.Core;
 
 class FileService : IFileService
 {
-    private readonly ILazyDependency<IAppWindow> appWindowDependency;
-
-    public FileService([FromKeyedServices("Main")] ILazyDependency<IAppWindow> appWindow)
+    public FileService()
     {
-        ArgumentNullException.ThrowIfNull(appWindow);
-
-        appWindowDependency = appWindow;
-
-        UserDataPath = Path.GetDirectoryName(IFileService.ApplicationPath)!;
+        UserDataPath = Path.GetDirectoryName(IApp.ApplicationPath)!;
     }
 
     public string UserDataPath { get; }
@@ -65,51 +59,6 @@ class FileService : IFileService
         }
 
         return file.OpenWrite();
-    }
-
-    public async Task<IList<string>> PickFilesForOpenAsync(IImmutableList<FileType> fileTypes)
-    {
-        var openPicker = new FileOpenPicker();
-        InitializeWithWindow.Initialize(openPicker, GetHandle());
-
-        openPicker.ViewMode = PickerViewMode.Thumbnail;
-        openPicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
-
-        fileTypes.ForEach(x => openPicker.FileTypeFilter.Add(x.Extension));
-
-        var files = await openPicker.PickMultipleFilesAsync();
-        return files?.Select(x => x.Path).ToArray() ?? [];
-    }
-
-    public async Task<string?> PickFileForOpenAsync(IImmutableList<FileType> fileTypes)
-    {
-        var openPicker = new FileOpenPicker();
-        InitializeWithWindow.Initialize(openPicker, GetHandle());
-
-        openPicker.ViewMode = PickerViewMode.Thumbnail;
-        openPicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
-
-        fileTypes.ForEach(x => openPicker.FileTypeFilter.Add(x.Extension));
-
-        var file = await openPicker.PickSingleFileAsync();
-        return file?.Path;
-    }
-
-    public async Task<string?> PickFileForSaveAsync(IImmutableList<FileType> fileTypes, string? suggestedFileName = null)
-    {
-        var savePicker = new FileSavePicker();
-        InitializeWithWindow.Initialize(savePicker, GetHandle());
-
-        savePicker.SuggestedFileName = suggestedFileName ?? string.Empty;
-        savePicker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
-
-        foreach (var category in fileTypes.GroupBy(x => x.Description))
-        {
-            savePicker.FileTypeChoices.Add(category.Key, category.Select(x => x.Extension).ToArray());
-        }
-
-        var file = await savePicker.PickSaveFileAsync();
-        return file?.Path;
     }
 
     public async Task<IList<MediaItem>> LoadMediaItems(IEnumerable<string> fileNames)
@@ -134,10 +83,5 @@ class FileService : IFileService
         }
 
         return mediaItems;
-    }
-
-    private nint GetHandle()
-    {
-        return appWindowDependency.Resolve().Handle;
     }
 }

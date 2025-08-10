@@ -27,6 +27,7 @@ using System.Reactive.Subjects;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Win32;
+using MusicApp.Core;
 using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 using Windows.Win32;
@@ -39,17 +40,17 @@ internal class ShellService : IShellService
     private readonly string productName, productDescription;
     private readonly string appPath, appFileName, resourcePath;
 
-    public ShellService(IAppService appService)
+    public ShellService(IApp app)
     {
-        ArgumentNullException.ThrowIfNull(appService);
+        ArgumentNullException.ThrowIfNull(app);
 
-        productName = appService.AppInfo.ProductName;
-        productDescription = appService.AppInfo.ProductDescription??"";
+        productName = app.Info.ProductName;
+        productDescription = app.Info.ProductDescription ?? "";
 
-        appPath = IFileService.ApplicationPath;
+        appPath = IApp.ApplicationPath;
         appFileName = Path.GetFileName(appPath);
         resourcePath = Path.Combine(
-            $"{Path.GetDirectoryName(appPath)}", 
+            $"{Path.GetDirectoryName(appPath)}",
             $"{Path.GetFileNameWithoutExtension(appPath)}.Resources.dll");
 
         SupportedFileTypes = [

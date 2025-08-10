@@ -46,57 +46,41 @@ using System.Web;
 using System.Xml.Schema;
 using MusicApp.Core;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using MusicApp.Core.Helpers;
+using System.Windows.Navigation;
+using System.Text.RegularExpressions;
 
-public partial class App : Application
+public partial class App : Application, IDisposable, IApp
 {
     private readonly CompositeDisposable disposable = [];
 
+    private readonly Dictionary<string, IServiceScope> windowScopes = [];
+
+    private readonly IServiceProvider serviceProvider;
     private readonly ISettingsService settingsService;
-    private readonly IFileService fileService;
-    private readonly IPlaylistService playlistService;
-    private readonly IAppCommandManager appCommandManager;
-
-    private readonly ILazyDependency<ISingleInstanceService> singleInstanceService;
-    private readonly ILazyDependency<ITaskbarMediaButtonsService> taskbarMediaButtons;
-    private readonly ILazyDependency<ITaskbarMediaCoverService> taskbarMediaCover;
-    private readonly ILazyDependency<IAppWindow> appWindow;
-
+    private readonly ISystemEventsService systemEventsService;
+    private readonly IHostApplicationLifetime lifetime;
     private readonly ILogger<App> logger;
 
-    public App(
-        ISettingsService settingsService,
-        IFileService fileService,
-        IPlaylistService playlistService,
-        IAppCommandManager appCommandManager,
-        ILogger<App> logger,
-        ILazyDependency<ISingleInstanceService> singleInstanceService,
-        ILazyDependency<ITaskbarMediaButtonsService> taskbarMediaButtons,
-        ILazyDependency<ITaskbarMediaCoverService> taskbarMediaCover,
-        [FromKeyedServices("Main")] ILazyDependency<IAppWindow> appWindow)
+    private IAppWindow? mainWindow;
+
+    public App(IServiceProvider serviceProvider)
     {
-        ArgumentNullException.ThrowIfNull(settingsService);
-        ArgumentNullException.ThrowIfNull(fileService);
-        ArgumentNullException.ThrowIfNull(playlistService);
-        ArgumentNullException.ThrowIfNull(appCommandManager);
-        ArgumentNullException.ThrowIfNull(singleInstanceService);
-        ArgumentNullException.ThrowIfNull(taskbarMediaButtons);
-        ArgumentNullException.ThrowIfNull(taskbarMediaCover);
-        ArgumentNullException.ThrowIfNull(appWindow);
+        ArgumentNullException.ThrowIfNull(serviceProvider);
 
-        this.settingsService = settingsService;
-        this.fileService = fileService;
-        this.playlistService = playlistService;
-        this.appCommandManager = appCommandManager;
-        this.logger = logger;
+        this.serviceProvider = serviceProvider;
 
-        this.singleInstanceService = singleInstanceService;
-        this.taskbarMediaButtons = taskbarMediaButtons;
-        this.taskbarMediaCover = taskbarMediaCover;
-        this.appWindow = appWindow;
+        settingsService = serviceProvider.GetRequiredService<ISettingsService>();
+        systemEventsService = serviceProvider.GetRequiredService<ISystemEventsService>();
+        lifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
+        logger = serviceProvider.GetRequiredService<ILogger<App>>();
+
+        Info = GetAppInfo();
 
         InitializeComponent();
 
-        var theme = this.settingsService.WindowTheme.Value;
+        var theme = settingsService.WindowTheme.Value;
 
         switch (theme)
         {
@@ -108,58 +92,174 @@ public partial class App : Application
                 RequestedTheme = ApplicationTheme.Light;
                 break;
         }
+
+        InitSubscriptions();
+    }
+
+    public AppInfo Info { get; }
+
+    public IAppWindow GetWindow<T>() where T : ViewModel
+    {
+        var viewModelName = typeof(T).Name;
+
+        if (windowScopes.TryGetValue(viewModelName, out var scope) is false)
+        {
+            scope = serviceProvider.CreateScope();
+
+            var window = scope.ServiceProvider.GetRequiredKeyedService<Window>(viewModelName);
+            window.Title = Info.ProductName;
+
+            var scopeData = scope.ServiceProvider.GetRequiredService<ScopeDataService>();
+            scopeData.Init((IAppWindow)window);
+
+            windowScopes.Add(viewModelName, scope);
+
+            var view = scope.ServiceProvider.GetRequiredKeyedService<UserControl>(viewModelName);
+
+            if (window.Content is Grid grid)
+            {
+                grid.Children.Insert(0, view);                                   
+            }
+            else
+            {
+                window.Content = view;
+            }
+        }
+
+        return scope.ServiceProvider.GetRequiredService<ScopeDataService>().Window;
+    }
+
+    public void Dispose()
+    {
+        if (disposable.IsDisposed is false)
+        {
+            disposable.Dispose();
+        }
+
+        GC.SuppressFinalize(this);
+    }
+
+    private void OnWindowClosed(object sender, WindowEventArgs args)
+    {
+        if (sender is Window window && windowScopes.TryGetValue(window.GetType().Name, out var scope))
+        {
+            window.Closed -= OnWindowClosed;
+            scope.Dispose();
+
+            windowScopes.Remove(window.GetType().Name);
+        }
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs _)
     {
         base.OnLaunched(_);
 
-        try
+        mainWindow = GetWindow<PlayerViewModel>();
+        mainWindow.Show();
+
+        //try
+        //{
+        //    var windowDisposable = new CompositeDisposable {
+        //        singleInstanceService.Resolve(),
+        //        taskbarMediaButtons.Resolve(),
+        //        taskbarMediaCover.Resolve()
+        //    };
+
+        //    var window = appWindow.Resolve();
+        //    window.Closed += (_, _) =>
+        //    {
+        //        windowDisposable.Dispose();
+        //    };
+
+        //    window.Show();
+
+        //    var args = Environment.GetCommandLineArgs();
+        //    logger.LogInformation("Args count: {length}", args.Length);
+        //    foreach (var arg in args)
+        //    {
+        //        logger.LogInformation("\t{arg}", arg);
+        //    }
+
+        //    if (args.Length > 1)
+        //    {
+        //        LoadMediaItems(args[1]);
+        //    }
+        //    else
+        //    {
+        //        playlistService.Load();
+        //    }
+        //}
+        //catch (Exception ex)
+        //{
+        //    logger.LogCritical(ex, "OnLaunched exception");
+        //}
+    }
+
+    //private async void LoadMediaItems(string path)
+    //{
+    //    var items = await fileService.LoadMediaItems([path]);
+
+    //    await appCommandManager.ExecuteAsync(new MediaItemAddCommand.Parameters
+    //    {
+    //        Overwrite = true,
+    //        Items = items.ToImmutableArray()
+    //    });
+    //}
+
+    private void InitSubscriptions()
+    {
+        if (SynchronizationContext.Current == null)
         {
-            var windowDisposable = new CompositeDisposable {
-                singleInstanceService.Resolve(),
-                taskbarMediaButtons.Resolve(),
-                taskbarMediaCover.Resolve()
-            };          
-            
-            var window = appWindow.Resolve();
-            window.Closed += (_, _) =>
-            {
-                windowDisposable.Dispose();
-            };
-
-            window.Show();
-
-            var args = Environment.GetCommandLineArgs();
-            logger.LogInformation("Args count: {length}", args.Length);
-            foreach (var arg in args)
-            {
-                logger.LogInformation("\t{arg}", arg);
-            }
-
-            if (args.Length > 1)
-            {
-                LoadMediaItems(args[1]);
-            }
-            else
-            {
-                playlistService.Load();
-            }
+            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
         }
-        catch (Exception ex)
+
+        Observable
+            .CombineLatest(
+                settingsService.WindowTheme,
+                systemEventsService.AppDarkTheme,
+                (theme, isSystemDark) => theme == WindowTheme.Dark || theme == WindowTheme.System && isSystemDark)
+            .DistinctUntilChanged()
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(isDarkTheme => UpdateTheme(isDarkTheme))
+            .DisposeWith(disposable);
+    }
+
+    private void UpdateTheme(bool isDarkTheme)
+    {
+        foreach (var scope in windowScopes.Values)
         {
-            logger.LogCritical(ex, "OnLaunched exception");
+            if (scope.ServiceProvider.GetRequiredService<IAppWindow>() is Window window)
+            {
+                window.UpdateTheme(isDarkTheme);
+            }
         }
     }
 
-    private async void LoadMediaItems(string path)
+    private static AppInfo GetAppInfo()
     {
-        var items = await fileService.LoadMediaItems([path]);
-
-        await appCommandManager.ExecuteAsync(new MediaItemAddCommand.Parameters
+        var info = FileVersionInfo.GetVersionInfo(typeof(App).Assembly.Location);
+        return new AppInfo
         {
-            Overwrite = true,
-            Items = items.ToImmutableArray()
-        });
+            ProductName = info.ProductName ?? "MusicApp",
+            ProductVersion = info.ProductVersion,
+            ProductDescription = info.Comments,
+            LegalCopyright = info.LegalCopyright,
+            FileVersion = new Version(
+        info.FileMajorPart,
+        info.FileMinorPart,
+        info.FileBuildPart,
+        info.FilePrivatePart),
+
+            IsPreRelease = Regex.IsMatch(info.ProductVersion ?? "", "[a-zA-Z]")
+        };
+    }
+
+    public sealed class WindowData
+    {
+        public required Window Window { get; init; }
+
+        public required IServiceScope Scope { get; init; }
+
+        public IServiceProvider ServiceProvider => Scope.ServiceProvider;
     }
 }
