@@ -74,11 +74,6 @@ internal class AppService : IAppService
         settingsWindow.Show(true);
     }
 
-    public void Exit()
-    {
-        App.Current.Exit();
-    }
-
     private AppInfo LoadAppInfo()
     {
         var info = FileVersionInfo.GetVersionInfo(typeof(AppService).Assembly.Location);

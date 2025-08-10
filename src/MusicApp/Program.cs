@@ -64,43 +64,8 @@ public class Program
             return;
         }
 
-        XamlCheckProcessRequirements();
-        WinRT.ComWrappersSupport.InitializeComWrappers();
-
-        using var host = CreateHost();
-        var logger = host.Services.GetRequiredService<ILogger<App>>();
-
-        try
-        {
-            using var sm = new SemaphoreSlim(0);
-
-            _ = host.RunAsync();
-
-            var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
-            lifetime.ApplicationStarted.Register(() => sm.Release());
-
-            if (sm.Wait(TimeSpan.FromSeconds(5)))
-            {
-                Application.Start(_ =>
-                {
-                    var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
-                    SynchronizationContext.SetSynchronizationContext(context);
-
-                    var instance = host.Services.GetRequiredService<App>();
-                    instance.UnhandledException += (_, e) => logger.LogCritical(e.Exception, "Unhandled Exception");
-                });
-
-                lifetime.StopApplication();
-            }
-            else
-            {
-                logger.LogCritical("Startup timeout");
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.LogCritical(ex, "Initialization Exception");
-        }
+        using var host = AppHost.Build(CreateHost);
+        host.RunAsync();
     }
 
     private static bool IsFirstInstance(string[] args)
@@ -150,55 +115,50 @@ public class Program
     private static readonly string InitializationMutexName = $"{IAppService.AppUserModelID}.InitializationMutex";
     private static AppInstance? appInstance;
 
-    private static IHost CreateHost()
+    private static void CreateHost(IServiceCollection services)
     {
-        var builder = Host.CreateApplicationBuilder();
-
-        builder.Services.AddLogging(builder =>
+        services.AddLogging(builder =>
         {
             builder.ClearProviders();
             builder.AddNLog();
         });
 
-        builder.Services.AddSingleton<App>();
-        builder.Services.AddSingleton<MainWindow>();
-        builder.Services.AddSingleton<SettingsWindow>();
+        services.AddSingleton<App>();
+        services.AddSingleton<MainWindow>();
+        services.AddSingleton<SettingsWindow>();
 
-        builder.Services.AddSingleton<IAppService, AppService>();
-        builder.Services.AddSingleton<IShellService, ShellService>();
-        builder.Services.AddSingleton<ISingleInstanceService, SingleInstanceService>();
-        builder.Services.AddSingleton<ITaskbarMediaButtonsService, TaskbarMediaButtonsService>();
-        builder.Services.AddSingleton<ITaskbarMediaCoverService, TaskbarMediaCoverService>();
+        services.AddSingleton<IAppService, AppService>();
+        services.AddSingleton<IShellService, ShellService>();
+        services.AddSingleton<ISingleInstanceService, SingleInstanceService>();
+        services.AddSingleton<ITaskbarMediaButtonsService, TaskbarMediaButtonsService>();
+        services.AddSingleton<ITaskbarMediaCoverService, TaskbarMediaCoverService>();
 
-        builder.Services.AddLazySingleton<ISingleInstanceService>();
-        builder.Services.AddLazySingleton<ITaskbarMediaButtonsService>();
-        builder.Services.AddLazySingleton<ITaskbarMediaCoverService>();
+        services.AddLazySingleton<ISingleInstanceService>();
+        services.AddLazySingleton<ITaskbarMediaButtonsService>();
+        services.AddLazySingleton<ITaskbarMediaCoverService>();
 
-        builder.Services.AddKeyedSingleton<IAppWindow>("Main", (sp, _) => sp.GetRequiredService<MainWindow>());
-        builder.Services.AddKeyedSingleton<IAppWindow>("Settings", (sp, _) => sp.GetRequiredService<SettingsWindow>());
+        services.AddKeyedSingleton<IAppWindow>("Main", (sp, _) => sp.GetRequiredService<MainWindow>());
+        services.AddKeyedSingleton<IAppWindow>("Settings", (sp, _) => sp.GetRequiredService<SettingsWindow>());
 
-        builder.Services.AddLazyKeyedSingleton<IAppWindow>("Main");
-        builder.Services.AddLazyKeyedSingleton<IAppWindow>("Settings");
+        services.AddLazyKeyedSingleton<IAppWindow>("Main");
+        services.AddLazyKeyedSingleton<IAppWindow>("Settings");
 
-        builder.Services.AddSingleton<IFileService, FileService>();
-        builder.Services.AddSingleton<ISystemEventsService, SystemEventsService>();
-        builder.Services.AddSingleton<ISettingsService, SettingsService>();
+        services.AddSingleton<IFileService, FileService>();
+        services.AddSingleton<ISystemEventsService, SystemEventsService>();
+        services.AddSingleton<ISettingsService, SettingsService>();
 
-        builder.Services.AddSingleton<IPlaybackService, PlaybackService>();
-        builder.Services.AddSingleton<IPlaylistService, PlaylistService>();
+        services.AddSingleton<IPlaybackService, PlaybackService>();
+        services.AddSingleton<IPlaylistService, PlaylistService>();
 
-        builder.Services.AddSingleton<IAppCommandManager, AppCommandManager>();
-        builder.Services.AddTransient<IAppCommand<MediaItemAddCommand.Parameters>, MediaItemAddCommand>();
-        builder.Services.AddTransient<IAppCommand<MediaItemRemoveCommand.Parameters>, MediaItemRemoveCommand>();
+        services.AddSingleton<IAppCommandManager, AppCommandManager>();
+        services.AddTransient<IAppCommand<MediaItemAddCommand.Parameters>, MediaItemAddCommand>();
+        services.AddTransient<IAppCommand<MediaItemRemoveCommand.Parameters>, MediaItemRemoveCommand>();
 
-        builder.Services.AddSingleton<PlayerViewModel>();
-        builder.Services.AddSingleton<PlaylistViewModel>();
-        builder.Services.AddSingleton<SettingsViewModel>();
-
-        return builder.Build();
+        services.AddSingleton<PlayerViewModel>();
+        services.AddSingleton<PlaylistViewModel>();
+        services.AddSingleton<SettingsViewModel>();
     }
 
 
-    [DllImport("Microsoft.ui.xaml.dll")]
-    private static extern void XamlCheckProcessRequirements();
+
 }

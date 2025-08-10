@@ -11,6 +11,7 @@ using System.Reactive.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml.Media.Imaging;
 using MusicApp.Core;
 using MusicApp.Core.Helpers;
@@ -26,12 +27,12 @@ internal class TaskbarMediaCoverService : ITaskbarMediaCoverService
     private readonly IPlaybackService playbackService;
 
     private readonly Thumbnail thumbnail;
-    private readonly MainWindow window;
+    private readonly IAppWindow window;
     private ImageData? imageData;
 
     public TaskbarMediaCoverService(
         IPlaybackService playbackService,
-        MainWindow window)
+        [FromKeyedServices("Main")] IAppWindow window)
     {
         ArgumentNullException.ThrowIfNull(playbackService);
         ArgumentNullException.ThrowIfNull(window);
@@ -123,29 +124,22 @@ internal class TaskbarMediaCoverService : ITaskbarMediaCoverService
 
     private async Task OnLivePreview(Thumbnail sender, Thumbnail.PreviewEventArgs e)
     {
-        if (window is null)
+        var captureData = default(WindowCaptureData);
+
+        if (window is null || (captureData = await window.Capture()) is null)
         {
             return;
         }
 
-        var renderTargetBitmap = new RenderTargetBitmap();
-        using (var capture = window.StartCapture())
-        {
-            await renderTargetBitmap.RenderAsync(window.Content);
-        }
-
-        var width = renderTargetBitmap.PixelWidth;
-        var height = renderTargetBitmap.PixelHeight;
-
-        var bitmap = new Bitmap(width, height, PixelFormat.Format32bppArgb);
+        var bitmap = new Bitmap(captureData.Width, captureData.Height, PixelFormat.Format32bppArgb);
 
         var bitmapData = bitmap.LockBits(
-            new Rectangle(0, 0, width, height),
+            new Rectangle(0, 0, bitmap.Width, bitmap.Height),
             ImageLockMode.WriteOnly,
             PixelFormat.Format32bppArgb
         );
 
-        var pixelData = (await renderTargetBitmap.GetPixelsAsync()).ToArray();
+        var pixelData = captureData.Pixels;
 
         unsafe
         {

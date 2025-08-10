@@ -16,22 +16,19 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services;
+namespace MusicApp.Core.Models;
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MusicApp.Core.Models;
-using MusicApp.Core.ViewModels;
 
-public interface IAppService
+public sealed class WindowCaptureData
 {
-    static string AppUserModelID => "com.albertakhmetov.MusicApp";
+    public int Width { get; init; }
 
-    AppInfo AppInfo { get; }
+    public int Height { get; init; }
 
-    Task ShowSettings();
+    public required byte[] Pixels { get; init; }
 }
