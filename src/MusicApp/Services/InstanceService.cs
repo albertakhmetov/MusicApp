@@ -89,8 +89,14 @@ internal class InstanceService : IInstanceService, IDisposable
             }
         });
 
+        if (SynchronizationContext.Current == null)
+        {
+            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
+        }
+
         incomeFileSubscription = incomeFileNames
-            .Buffer(incomeFileNames.Throttle(TimeSpan.FromMilliseconds(150)))
+            .Buffer(incomeFileNames.Throttle(TimeSpan.FromMilliseconds(250)))
+            .ObserveOn(SynchronizationContext.Current)
             .Subscribe(async fileNames => await AddFilesAndActivate(fileNames));
     }
 
@@ -132,7 +138,7 @@ internal class InstanceService : IInstanceService, IDisposable
                 attemptNo++;
             }
 
-            await Task.Delay(TimeSpan.FromMilliseconds(250));
+            await Task.Delay(TimeSpan.FromMilliseconds(100));
         }
 
         return false;
@@ -174,6 +180,7 @@ internal class InstanceService : IInstanceService, IDisposable
         await appCommandManager.ExecuteAsync(new MediaItemAddCommand.Parameters
         {
             Overwrite = false,
+            Play = true,
             FileNames = fileNames.ToImmutableArray()
         });
 

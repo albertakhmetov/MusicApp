@@ -55,7 +55,8 @@ internal class ShellService : IShellService
             .GetFileInfo($"{appFileInfo.GetFileNameWithoutExtension()}.Resources.dll");
 
         SupportedFileTypes = [
-            new FileType { Description = "MP3 Music File", Extension = ".mp3" }
+            new FileType { Description = "MP3 Music File", Extension = ".mp3" },
+            new FileType { Description = "MKA Music File", Extension = ".mka" }
         ];
 
         isAppRegistedSubject = new BehaviorSubject<bool>(IsAppRegisted());

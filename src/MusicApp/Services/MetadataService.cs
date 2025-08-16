@@ -55,10 +55,14 @@ internal class MetadataService : IMetadataService
         var file = await StorageFile.GetFileFromPathAsync(fileName);
         var musicProperties = await file.Properties.GetMusicPropertiesAsync();
 
+        var title = string.IsNullOrEmpty(musicProperties.Title)
+            ? file.DisplayName
+            : musicProperties.Title;
+
         return new MediaItem(fileName)
         {
             TrackNumber = musicProperties.TrackNumber,
-            Title = musicProperties.Title,
+            Title = title,
             Artist = musicProperties.Artist,
             Album = musicProperties.Album,
             Year = musicProperties.Year,

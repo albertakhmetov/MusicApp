@@ -223,7 +223,7 @@
                                 </Path.Data>
                             </Path>
 
-                            <TextBlock Grid.Column="1" Margin="8,4" VerticalAlignment="Center">
+                            <TextBlock Grid.Column="1" Margin="8,4" VerticalAlignment="Center" TextTrimming="WordEllipsis">                                
                                 <Run Text="{x:Bind MediaItem.Title, Mode=OneWay}"/>
                                 <Run Text="&#x2013;" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
                                 <Run Text="{x:Bind MediaItem.Artist, Mode=OneWay}" Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>

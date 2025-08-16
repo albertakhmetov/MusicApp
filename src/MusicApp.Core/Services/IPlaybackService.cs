@@ -52,15 +52,15 @@ public interface IPlaybackService
 
     IObservable<bool> RepeatMode { get; }
 
-    void Play(MediaItem? mediaItem);
-   
+    bool Play(MediaItem? mediaItem);
+
     void Play();
 
     void Pause();
 
     void TogglePlayback();
 
-    void SetMediaItem(MediaItem? mediaItem);
+    bool SetMediaItem(MediaItem? mediaItem);
 
     void GoPrevious();
 

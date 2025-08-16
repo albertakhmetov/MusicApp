@@ -63,6 +63,11 @@ public class MediaItemAddCommand : IAppCommand<MediaItemAddCommand.Parameters>
         {
             await playbackService.Items.AddAsync(mediaItems);
         }
+
+        if (parameters.Play)
+        {
+            playbackService.Play(mediaItems.FirstOrDefault());
+        }
     }
 
     public sealed class Parameters
@@ -70,5 +75,7 @@ public class MediaItemAddCommand : IAppCommand<MediaItemAddCommand.Parameters>
         public required IImmutableList<string> FileNames { get; init; }
 
         public bool Overwrite { get; init; } = false;
+
+        public bool Play { get; init; } = false;
     }
 }

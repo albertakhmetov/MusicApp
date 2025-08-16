@@ -130,11 +130,17 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
     public IObservable<bool> RepeatMode { get; }
 
-    public void Play(MediaItem? mediaItem)
+    public bool Play(MediaItem? mediaItem)
     {
-        SetMediaItem(mediaItem);
-
-        Play();
+        if (SetMediaItem(mediaItem))
+        {
+            Play();
+            return true;
+        }
+        else
+        {
+            return false;
+        }
     }
 
     public void Play()
@@ -162,13 +168,18 @@ internal class PlaybackService : IPlaybackService, IDisposable
         }
     }
 
-    public void SetMediaItem(MediaItem? mediaItem)
+    public bool SetMediaItem(MediaItem? mediaItem)
     {
         var itemIndex = playbackList.Items.IndexOf(FindPlaybackItem(mediaItem));
 
         if (itemIndex > -1)
         {
             playbackList.MoveTo((uint)itemIndex);
+            return true;
+        }
+        else
+        {
+            return false;
         }
     }
 
@@ -335,7 +346,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
     }
 
     private async Task SetCurrentPlaybackItem(MediaPlaybackItem? playbackItem)
-    {       
+    {
         var mediaItem = playbackItem?.Source.GetProperty<MediaItem>() ?? Core.Models.MediaItem.Empty;
         mediaItemSubject.OnNext(mediaItem);
 
