@@ -22,6 +22,7 @@
 		<Authors>Albert Akhmetov</Authors>
 		<Product>MusicApp</Product>
 		<Version>0.1.0</Version>
+		<Description>A minimal music player built with C# and WinUI 3, featuring a clean and intuitive interface. Supports basic playback, track switching, and volume control.</Description>
 		<ApplicationIcon>Assets\app.ico</ApplicationIcon>
 		<PackageIcon></PackageIcon>
 		<PackageIconUrl />
@@ -52,10 +53,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <Compile Remove="Views\_MainWindow.xaml.cs" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<Content Remove="Assets\app.ico" />
 		<Content Remove="Assets\app.png" />
 		<Content Remove="Assets\Dark.Next.ico" />
@@ -71,14 +68,6 @@
 	<ItemGroup>
 		<None Remove="Controls\DragTargetControl.xaml" />
 		<None Remove="Styles.xaml" />
-		<None Remove="Views\PlayerView.xaml" />
-		<None Remove="Views\SettingsView.xaml" />
-		<None Remove="Views\SettingsWindow.xaml" />
-		<None Remove="Views\_MainWindow.xaml" />
-	</ItemGroup>
-
-	<ItemGroup>
-	  <Page Remove="Views\_MainWindow.xaml" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -145,10 +134,6 @@
 		</Page>
 	</ItemGroup>
 
-	<ItemGroup>
-	  <Folder Include="Properties\" />
-	</ItemGroup>
-
 	<Target Name="RemoveFoldersWithMuiFiles" Condition="'$(WindowsPackageType)' == 'None'" AfterTargets="Build">
 		<ItemGroup>
 			<RemovingFiles Include="$(OutDir)*\*.mui" Exclude="$(OutDir)en-us\*.mui" />
@@ -156,4 +141,8 @@
 		</ItemGroup>
 		<RemoveDir Directories="@(RemovingFolders)" />
 	</Target>
+
+	<ItemGroup>
+	  <PRIResource Remove="Properties\**" />
+	</ItemGroup>
 </Project>

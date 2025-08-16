@@ -71,6 +71,7 @@ public sealed partial class PlayerWindow : Window, IAppWindow
 
         icon = System.Drawing.Icon.ExtractAssociatedIcon(appEnvironment.ApplicationFileInfo.FullName)!;
         AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(icon.Handle));
+        AppWindow.Title = appEnvironment.ProductName;
 
         AppWindow.Resize(AppWindow.Size);
 
