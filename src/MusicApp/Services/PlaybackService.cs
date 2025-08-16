@@ -41,6 +41,8 @@ internal class PlaybackService : IPlaybackService, IDisposable
 {
     private readonly CompositeDisposable disposable = [];
 
+    private readonly IMetadataService metadataService;
+
     private readonly PlaybackPosition position;
     private readonly BehaviorSubject<int> durationSubject, volumeSubject;
     private readonly BehaviorSubject<PlaybackState> playbackStateSubject;
@@ -54,8 +56,11 @@ internal class PlaybackService : IPlaybackService, IDisposable
     private readonly MediaPlayer mediaPlayer;
     private readonly MediaPlaybackList playbackList;
 
-    public PlaybackService()
+    public PlaybackService(IMetadataService metadataService)
     {
+        ArgumentNullException.ThrowIfNull(metadataService);
+        this.metadataService = metadataService;
+
         mediaPlayer = new MediaPlayer();
         playbackList = new MediaPlaybackList
         {
@@ -341,7 +346,7 @@ internal class PlaybackService : IPlaybackService, IDisposable
             currentCover.Dispose();
         }
 
-        var cover = await mediaItem.LoadCover();
+        var cover = await metadataService.LoadMediaCoverAsync(mediaItem);
         mediaItemCoverSubject.OnNext(cover);
 
         //await UpdateSmtc(cover);

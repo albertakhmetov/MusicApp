@@ -40,6 +40,7 @@ public sealed partial class PlayerWindow : Window, IAppWindow
     private System.Drawing.Icon icon;
 
     public PlayerWindow(
+        IAppEnvironment appEnvironment,
         ISettingsService settingsService,
         ISystemEventsService systemEventsService)
     {
@@ -68,7 +69,7 @@ public sealed partial class PlayerWindow : Window, IAppWindow
         MinimizeCommand = new RelayCommand(_ => presenter.Minimize());
         CloseCommand = new RelayCommand(_ => Close());
 
-        icon = System.Drawing.Icon.ExtractAssociatedIcon(IShellService.ApplicationPath)!;
+        icon = System.Drawing.Icon.ExtractAssociatedIcon(appEnvironment.ApplicationFileInfo.FullName)!;
         AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(icon.Handle));
 
         AppWindow.Resize(AppWindow.Size);

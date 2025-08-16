@@ -30,6 +30,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using MusicApp.Core;
+using MusicApp.Core.Helpers;
 using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 using Windows.Win32;
@@ -40,20 +41,18 @@ internal class ShellService : IShellService
     private readonly BehaviorSubject<bool> isAppRegistedSubject;
 
     private readonly string productName, productDescription;
-    private readonly string appPath, appFileName, resourcePath;
+    private readonly FileInfo appFileInfo, resourceFileInfo;
 
-    public ShellService()
+    public ShellService(IAppEnvironment appEnvironment)
     {
-        Info = GetAppInfo();
+        ArgumentNullException.ThrowIfNull(appEnvironment);
 
-        productName = Info.ProductName;
-        productDescription = Info.ProductDescription ?? "";
+        productName = appEnvironment.ProductName;
+        productDescription = appEnvironment.ProductDescription ?? "";
 
-        appPath = IShellService.ApplicationPath;
-        appFileName = Path.GetFileName(appPath);
-        resourcePath = Path.Combine(
-            $"{Path.GetDirectoryName(appPath)}",
-            $"{Path.GetFileNameWithoutExtension(appPath)}.Resources.dll");
+        appFileInfo = appEnvironment.ApplicationFileInfo;
+        resourceFileInfo = appEnvironment.ApplicationDirectoryInfo
+            .GetFileInfo($"{appFileInfo.GetFileNameWithoutExtension()}.Resources.dll");
 
         SupportedFileTypes = [
             new FileType { Description = "MP3 Music File", Extension = ".mp3" }
@@ -62,8 +61,6 @@ internal class ShellService : IShellService
         isAppRegistedSubject = new BehaviorSubject<bool>(IsAppRegisted());
         IsRegistred = isAppRegistedSubject.AsObservable();
     }
-
-    public AppInfo Info { get; }
 
     public IImmutableList<FileType> SupportedFileTypes { get; }
 
@@ -81,7 +78,7 @@ internal class ShellService : IShellService
         using var capabilitiesKey = Registry.CurrentUser.CreateSubKey($@"Software\{productName}\Capabilities");
         capabilitiesKey.SetValue("ApplicationName", productName);
         capabilitiesKey.SetValue("ApplicationDescription", productDescription);
-        capabilitiesKey.SetValue("ApplicationIcon", $"{resourcePath},0");
+        capabilitiesKey.SetValue("ApplicationIcon", $"{resourceFileInfo.FullName},0");
 
         foreach (var type in SupportedFileTypes)
         {
@@ -95,21 +92,21 @@ internal class ShellService : IShellService
                 fileExtensionKey.SetValue("", type.Description);
 
                 using var fileExtensionIconKey = fileExtensionKey.CreateSubKey("DefaultIcon");
-                fileExtensionIconKey.SetValue("", $"{resourcePath},1");
+                fileExtensionIconKey.SetValue("", $"{resourceFileInfo.FullName},1");
 
                 using var fileExtensionVerbKey = fileExtensionKey.CreateSubKey("shell\\Open");
                 fileExtensionVerbKey.SetValue("MultiSelectModel", "Player");
 
                 using var fileExtensionCommandKey = fileExtensionKey.CreateSubKey("shell\\open\\command");
-                fileExtensionCommandKey.SetValue("", $"\"{appPath}\" \"%1\"");
+                fileExtensionCommandKey.SetValue("", $"\"{appFileInfo.FullName}\" \"%1\"");
             }
         }
 
         using var registeredAppsKey = Registry.CurrentUser.CreateSubKey(@"Software\RegisteredApplications");
         registeredAppsKey.SetValue(productName, $@"Software\{productName}\Capabilities");
 
-        using var appKey = Registry.CurrentUser.CreateSubKey($@"Software\Microsoft\Windows\CurrentVersion\App Paths\{appFileName}");
-        appKey.SetValue("", appPath);
+        using var appKey = Registry.CurrentUser.CreateSubKey($@"Software\Microsoft\Windows\CurrentVersion\App Paths\{appFileInfo.Name}");
+        appKey.SetValue("", appFileInfo.FullName);
 
         unsafe
         {
@@ -132,7 +129,7 @@ internal class ShellService : IShellService
 
         Registry.CurrentUser.DeleteSubKeyTree($@"Software\{productName}", false);
 
-        Registry.CurrentUser.DeleteSubKeyTree($@"Software\Microsoft\Windows\CurrentVersion\App Paths\{appFileName}", false);
+        Registry.CurrentUser.DeleteSubKeyTree($@"Software\Microsoft\Windows\CurrentVersion\App Paths\{appFileInfo.Name}", false);
 
         unsafe
         {
@@ -147,24 +144,5 @@ internal class ShellService : IShellService
         using var registeredAppsKey = Registry.CurrentUser.OpenSubKey(@"Software\RegisteredApplications");
 
         return registeredAppsKey?.GetValue(productName) is not null;
-    }
-
-    private static AppInfo GetAppInfo()
-    {
-        var info = FileVersionInfo.GetVersionInfo(typeof(App).Assembly.Location);
-        return new AppInfo
-        {
-            ProductName = info.ProductName ?? "MusicApp",
-            ProductVersion = info.ProductVersion,
-            ProductDescription = info.Comments,
-            LegalCopyright = info.LegalCopyright,
-            FileVersion = new Version(
-                info.FileMajorPart,
-                info.FileMinorPart,
-                info.FileBuildPart,
-                info.FilePrivatePart),
-
-            IsPreRelease = Regex.IsMatch(info.ProductVersion ?? "", "[a-zA-Z]")
-        };
     }
 }

@@ -16,32 +16,25 @@
  *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
  *
  */
-namespace MusicApp.Core.Services;
+namespace MusicApp.Core;
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using MusicApp.Core.Models;
 
-public interface IShellService
+public interface IAppEnvironment
 {
-#if DEBUG
-    static string AppUserModelID => "com.albertakhmetov.MusicApp.Debug";
-#else
-    static string AppUserModelID => "com.albertakhmetov.MusicApp";
-#endif
+    string ProductName { get; }
 
-    IImmutableList<FileType> SupportedFileTypes { get; }
+    string ProductVersion { get; }
 
-    IObservable<bool> IsRegistred { get; }
+    string ProductDescription { get; }
 
-    bool IsFileSupported(string? fileName);
+    FileInfo ApplicationFileInfo { get; }
 
-    void Register();
+    DirectoryInfo ApplicationDirectoryInfo { get; }
 
-    void Unregister();
+    DirectoryInfo UserDataDirectoryInfo { get; }
 }

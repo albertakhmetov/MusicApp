@@ -123,24 +123,6 @@ static class Extensions
         mediaSource.CustomProperties.Add(typeof(T).Name, value);
     }
 
-    public static async Task<ImageData> LoadCover(this MediaItem? mediaFile)
-    {
-        if (mediaFile?.IsEmpty == false)
-        {
-            var file = await StorageFile.GetFileFromPathAsync(mediaFile.FileName);
-
-            using var thumbnail = await file.GetThumbnailAsync(ThumbnailMode.MusicView, 300, ThumbnailOptions.UseCurrentScale);
-
-            if (thumbnail != null && thumbnail.Type == ThumbnailType.Image)
-            {
-                using var stream = thumbnail.AsStreamForRead();
-                return new ImageData(stream);
-            }
-        }
-
-        return ImageData.Empty;
-    }
-
     public static void Bind(this FrameworkElement element, DependencyProperty property, string path, BindingMode mode)
     {
         var binding = new Binding
