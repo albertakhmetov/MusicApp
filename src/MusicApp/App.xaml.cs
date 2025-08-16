@@ -62,6 +62,7 @@ public partial class App : Application, IDisposable, IApp
     private readonly ISettingsService settingsService;
     private readonly ISystemEventsService systemEventsService;
     private readonly IHostApplicationLifetime lifetime;
+    private readonly IAppCommandManager appCommandManager;
     private readonly ILogger<App> logger;
 
     private IAppWindow? mainWindow;
@@ -75,6 +76,7 @@ public partial class App : Application, IDisposable, IApp
         settingsService = serviceProvider.GetRequiredService<ISettingsService>();
         systemEventsService = serviceProvider.GetRequiredService<ISystemEventsService>();
         lifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
+        appCommandManager = serviceProvider.GetRequiredService<IAppCommandManager>();
         logger = serviceProvider.GetRequiredService<ILogger<App>>();
 
         Info = GetAppInfo();
@@ -167,60 +169,27 @@ public partial class App : Application, IDisposable, IApp
 
     protected override void OnLaunched(LaunchActivatedEventArgs _)
     {
-        base.OnLaunched(_);
+        try
+        {
+            base.OnLaunched(_);
 
-        mainWindow = GetWindow<PlayerViewModel>();
-        mainWindow.Show();
-        mainWindow.Closed += (_, _) => lifetime.StopApplication();
+            logger.LogInformation("Creating main window");
 
-        //try
-        //{
-        //    var windowDisposable = new CompositeDisposable {
-        //        singleInstanceService.Resolve(),
-        //        taskbarMediaButtons.Resolve(),
-        //        taskbarMediaCover.Resolve()
-        //    };
+            mainWindow = GetWindow<PlayerViewModel>();
+            mainWindow.Show();
+            mainWindow.Closed += (_, _) => lifetime.StopApplication();
 
-        //    var window = appWindow.Resolve();
-        //    window.Closed += (_, _) =>
-        //    {
-        //        windowDisposable.Dispose();
-        //    };
+            var args = Environment.GetCommandLineArgs();
 
-        //    window.Show();
+            logger.LogInformation("Arguments count (with the app path): {Count}", args.Length);
 
-        //    var args = Environment.GetCommandLineArgs();
-        //    logger.LogInformation("Args count: {length}", args.Length);
-        //    foreach (var arg in args)
-        //    {
-        //        logger.LogInformation("\t{arg}", arg);
-        //    }
-
-        //    if (args.Length > 1)
-        //    {
-        //        LoadMediaItems(args[1]);
-        //    }
-        //    else
-        //    {
-        //        playlistService.Load();
-        //    }
-        //}
-        //catch (Exception ex)
-        //{
-        //    logger.LogCritical(ex, "OnLaunched exception");
-        //}
+            serviceProvider.GetRequiredService<IInstanceService>().Start(args.Skip(1));
+        }
+        catch (Exception ex)
+        {
+            logger.LogCritical(ex, "OnLaunched exception");
+        }
     }
-
-    //private async void LoadMediaItems(string path)
-    //{
-    //    var items = await fileService.LoadMediaItems([path]);
-
-    //    await appCommandManager.ExecuteAsync(new MediaItemAddCommand.Parameters
-    //    {
-    //        Overwrite = true,
-    //        Items = items.ToImmutableArray()
-    //    });
-    //}
 
     private static AppInfo GetAppInfo()
     {

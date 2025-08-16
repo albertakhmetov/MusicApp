@@ -1,0 +1,162 @@
+﻿/*  Copyright © 2025, Albert Akhmetov <akhmetov@live.com>   
+ *
+ *  This file is part of MusicApp.
+ *
+ *  MusicApp is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  MusicApp is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with MusicApp. If not, see <https://www.gnu.org/licenses/>.   
+ *
+ */
+namespace MusicApp.Services;
+
+using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics;
+using System.IO.Pipes;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.Windows.AppLifecycle;
+using MusicApp.Core;
+using MusicApp.Core.Commands;
+using MusicApp.Core.Helpers;
+using MusicApp.Core.Services;
+using Windows.Win32;
+using Windows.Win32.Foundation;
+
+internal class InstanceService : IInstanceService
+{
+    private static readonly string PipeName = $"{IApp.AppUserModelID}.instance.pipe";
+
+    private static readonly AppInstance instance = AppInstance.FindOrRegisterForKey(IApp.AppUserModelID);
+
+    private readonly IAppCommandManager appCommandManager;
+    private readonly CancellationTokenSource cancellationTokenSource;
+    private readonly Task listenerTask;
+
+    private readonly Subject<string> incomeFileNames = new();
+    private readonly IDisposable incomeFileSubscription;
+
+    public InstanceService(IAppCommandManager appCommandManager)
+    {
+        ArgumentNullException.ThrowIfNull(appCommandManager);
+
+        this.appCommandManager = appCommandManager;
+
+        cancellationTokenSource = new CancellationTokenSource();
+        listenerTask = new Task(async () =>
+        {
+            while (CancellationToken.IsCancellationRequested is false)
+            {
+                using var pipeServer = new NamedPipeServerStream(
+                    pipeName: PipeName,
+                    direction: PipeDirection.InOut,
+                    maxNumberOfServerInstances: 1,
+                    transmissionMode: PipeTransmissionMode.Byte,
+                    options: PipeOptions.Asynchronous);
+
+                await pipeServer.WaitForConnectionAsync(CancellationToken);
+
+                using var reader = new StreamReader(pipeServer, Encoding.UTF8);
+                var receivedData = await reader.ReadToEndAsync();
+
+                foreach (var fileName in DeserializeData(receivedData))
+                {
+                    incomeFileNames.OnNext(fileName);
+                }
+            }
+        });
+
+        incomeFileSubscription = incomeFileNames
+            .Buffer(incomeFileNames.Throttle(TimeSpan.FromMilliseconds(500)))
+            .Subscribe(async fileNames => await AddFilesAndActivate(fileNames));
+    }
+
+    public static bool IsFirstInstance => instance.IsCurrent;
+
+    private CancellationToken CancellationToken => cancellationTokenSource.Token;
+
+    public static async Task ActivateFirstInstance(string[] args)
+    {
+        if (instance.IsCurrent is true)
+        {
+            throw new InvalidOperationException();
+        }
+
+        var data = SerializeData(args);
+
+        using var pipeClient = new NamedPipeClientStream(".", PipeName, PipeDirection.Out, PipeOptions.Asynchronous);
+
+        if (await TryToConnect(pipeClient, 5))
+        {
+            using var writer = new StreamWriter(pipeClient, Encoding.UTF8);
+            await writer.WriteAsync(data);
+            await writer.FlushAsync();
+        }
+    }
+
+    private static async Task<bool> TryToConnect(NamedPipeClientStream pipeClient, int maxAttemptCount)
+    {
+        var attemptNo = 0;
+        while (attemptNo < maxAttemptCount)
+        {
+            try
+            {
+                await pipeClient.ConnectAsync(1000);
+                return true;
+            }
+            catch (TimeoutException)
+            {
+                attemptNo++;
+            }
+
+            await Task.Delay(TimeSpan.FromMilliseconds(250));
+        }
+
+        return false;
+    }
+
+    public void Start(IEnumerable<string> arguments)
+    {
+        ArgumentNullException.ThrowIfNull(arguments);
+
+        arguments.ForEach(fileName => incomeFileNames.OnNext(fileName));
+
+        listenerTask.Start();
+    }
+
+    public void Dispose()
+    {
+        if (cancellationTokenSource.IsCancellationRequested is false)
+        {
+            cancellationTokenSource.Cancel();
+            incomeFileSubscription.Dispose();
+        }
+    }
+
+    private static string SerializeData(string[] args) => string.Join(Environment.NewLine, args);
+
+    private static string[] DeserializeData(string value) => value.Split(Environment.NewLine);
+
+    private async Task AddFilesAndActivate(IList<string> fileNames)
+    {
+        await appCommandManager.ExecuteAsync(new MediaItemAddCommand.Parameters
+        {
+            Overwrite = false,
+            FileNames = fileNames.ToImmutableArray()
+        });
+
+        PInvoke.SetForegroundWindow((HWND)Process.GetCurrentProcess().MainWindowHandle);
+    }
+}
