@@ -203,11 +203,9 @@ public class PlaylistViewModel : ViewModel, IDisposable
             return;
         }
 
-        var items = await fileService.LoadMediaItems(selectedFiles);
-
         await appCommandManager.ExecuteAsync(new MediaItemAddCommand.Parameters
         {
-            Items = items.ToImmutableArray()
+            FileNames = selectedFiles.ToImmutableArray()
         });
     }
 
@@ -226,11 +224,9 @@ public class PlaylistViewModel : ViewModel, IDisposable
             return;
         }
 
-        var items = await fileService.LoadMediaItems(fileNames);
-
         await appCommandManager.ExecuteAsync(new MediaItemAddCommand.Parameters
         {
-            Items = items.ToImmutableArray(),
+            FileNames = fileNames.ToImmutableArray(),
             Overwrite = overwrite
         });
     }

@@ -43,73 +43,28 @@ public class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        if (IsFirstInstance(args) is false)
+        if (InstanceService.IsFirstInstance)
         {
-            return;
-        }
+            PInvoke.SetCurrentProcessExplicitAppUserModelID(IApp.AppUserModelID);
 
-        PInvoke.SetCurrentProcessExplicitAppUserModelID(IApp.AppUserModelID);
-
-        var appDirectory = Path.GetDirectoryName(IApp.ApplicationPath);
-        if (appDirectory is not null)
-        {
-            Directory.SetCurrentDirectory(appDirectory);
-        }
-        else
-        {
-            return;
-        }
-
-        using var host = AppHost.Build(CreateHost);
-        host.RunAsync();
-    }
-
-    private static bool IsFirstInstance(string[] args)
-    {
-        appInstance = AppInstance.FindOrRegisterForKey(IApp.AppUserModelID);
-
-        if (appInstance.IsCurrent is false)
-        {
-            var data = string.Join(Environment.NewLine, args);
-
-            var process = Process.GetProcessById((int)appInstance.ProcessId);
-
-            while (process.MainWindowHandle == IntPtr.Zero)
+            var appDirectory = Path.GetDirectoryName(IApp.ApplicationPath);
+            if (appDirectory is not null)
             {
-                Task.Delay(TimeSpan.FromMilliseconds(1000)).Wait();
+                Directory.SetCurrentDirectory(appDirectory);
+            }
+            else
+            {
+                return;
             }
 
-            var processWindowHandle = process.MainWindowHandle;
-
-            SingleInstance.Send((HWND)processWindowHandle, data);
-
-            var activatedEventArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
-            appInstance
-                .RedirectActivationToAsync(activatedEventArgs)
-                .AsTask()
-                .Wait(TimeSpan.FromSeconds(5));
-
-            return false;
+            using var host = AppHost.Build(CreateHost);
+            host.RunAsync();
         }
         else
         {
-            appInstance.Activated += OnAppInstanceActivated;
-
-            return true;
+            InstanceService.ActivateFirstInstance(args).GetAwaiter().GetResult();
         }
     }
-
-    private static void OnAppInstanceActivated(object? sender, AppActivationArguments e)
-    {
-        if (appInstance is not null)
-        {
-            var process = Process.GetProcessById((int)appInstance!.ProcessId);
-            PInvoke.SetForegroundWindow((HWND)process.MainWindowHandle);
-        }
-    }
-
-    private static readonly string InitializationMutexName = $"{IApp.AppUserModelID}.InitializationMutex";
-    private static AppInstance? appInstance;
 
     private static void CreateHost(IServiceCollection services)
     {
@@ -120,8 +75,8 @@ public class Program
         });
 
         services.AddSingleton<IApp, App>();
-
         services.AddSingleton<IShellService, ShellService>();
+        services.AddSingleton<IInstanceService, InstanceService>();
 
         //services.AddSingleton<ISingleInstanceService, SingleInstanceService>();
         //services.AddSingleton<ITaskbarMediaButtonsService, TaskbarMediaButtonsService>();
@@ -154,8 +109,8 @@ public class Program
 
         services.AddScoped<PlayerViewModel>();
         services.AddScoped<PlaylistViewModel>();
-        services.AddScoped<SettingsViewModel>();     
-        
+        services.AddScoped<SettingsViewModel>();
+
         services.AddScoped<IAppCommandManager, AppCommandManager>();
         services.AddTransient<IAppCommand<MediaItemAddCommand.Parameters>, MediaItemAddCommand>();
         services.AddTransient<IAppCommand<MediaItemRemoveCommand.Parameters>, MediaItemRemoveCommand>();

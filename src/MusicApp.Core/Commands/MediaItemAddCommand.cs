@@ -30,12 +30,15 @@ using MusicApp.Core.Services;
 
 public class MediaItemAddCommand : IAppCommand<MediaItemAddCommand.Parameters>
 {
+    private readonly IFileService fileService;
     private readonly IPlaybackService playbackService;
 
-    public MediaItemAddCommand(IPlaybackService playbackService)
+    public MediaItemAddCommand(IFileService fileService, IPlaybackService playbackService)
     {
+        ArgumentNullException.ThrowIfNull(fileService);
         ArgumentNullException.ThrowIfNull(playbackService);
 
+        this.fileService = fileService;
         this.playbackService = playbackService;
     }
 
@@ -43,27 +46,28 @@ public class MediaItemAddCommand : IAppCommand<MediaItemAddCommand.Parameters>
     {
         ArgumentNullException.ThrowIfNull(parameters);
 
-        if (parameters.Items?.Any() != true)
+        if (parameters.FileNames?.Any() != true)
         {
             return;
         }
 
-        var items = parameters.Items.OrderBy(x => Path.GetFileName(x.FileName), StringLogicalComparer.Instance);
+        var fileNames = parameters.FileNames.OrderBy(x => Path.GetFileName(x), StringLogicalComparer.Instance);
+
+        var mediaItems = await fileService.LoadMediaItems(fileNames);
 
         if (parameters.Overwrite)
         {
-            await playbackService.Items.SetAsync(items);
+            await playbackService.Items.SetAsync(mediaItems);
         }
         else
         {
-            await playbackService.Items.AddAsync(items);
+            await playbackService.Items.AddAsync(mediaItems);
         }
     }
 
-
     public sealed class Parameters
     {
-        public required IImmutableList<MediaItem> Items { get; init; }
+        public required IImmutableList<string> FileNames { get; init; }
 
         public bool Overwrite { get; init; } = false;
     }
