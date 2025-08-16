@@ -26,8 +26,5 @@ using System.Threading.Tasks;
 
 public interface IPlaylistService
 {
-    public void Load()
-    {
-
-    }
+    Task StartAsync(bool loadPlaylist = true);
 }

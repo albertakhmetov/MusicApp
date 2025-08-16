@@ -68,7 +68,7 @@ public sealed partial class PlayerWindow : Window, IAppWindow
         MinimizeCommand = new RelayCommand(_ => presenter.Minimize());
         CloseCommand = new RelayCommand(_ => Close());
 
-        icon = System.Drawing.Icon.ExtractAssociatedIcon(IApp.ApplicationPath)!;
+        icon = System.Drawing.Icon.ExtractAssociatedIcon(IShellService.ApplicationPath)!;
         AppWindow.SetIcon(Win32Interop.GetIconIdFromIcon(icon.Handle));
 
         AppWindow.Resize(AppWindow.Size);

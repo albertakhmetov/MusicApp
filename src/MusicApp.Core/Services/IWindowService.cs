@@ -18,13 +18,9 @@
  */
 namespace MusicApp.Core.Services;
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using MusicApp.Core.ViewModels;
 
-public interface IInstanceService
+public interface IWindowService
 {
-    Task StartAsync(IEnumerable<string> arguments);
+    Task<IAppWindow> GetWindowAsync<T>() where T : ViewModel;
 }

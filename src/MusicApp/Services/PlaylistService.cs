@@ -51,12 +51,6 @@ internal class PlaylistService : IPlaylistService, IDisposable
         this.fileService = fileService;
     }
 
-    public void Load()
-    {
-
-
-    }
-
     public void Dispose()
     {
         if (disposable.IsDisposed is false)
@@ -65,9 +59,12 @@ internal class PlaylistService : IPlaylistService, IDisposable
         }
     }
 
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(bool loadPlaylist = true)
     {
-        await LoadPlaylist();
+        if (loadPlaylist)
+        {
+            await LoadPlaylist();
+        }
 
         playbackService
             .Items

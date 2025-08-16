@@ -35,24 +35,28 @@ using MusicApp.Core.Services;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 
-internal class InstanceService : IInstanceService
+internal class InstanceService : IInstanceService, IDisposable
 {
-    private static readonly string PipeName = $"{IApp.AppUserModelID}.instance.pipe";
+    private static readonly string PipeName = $"{IShellService.AppUserModelID}.instance.pipe";
 
-    private static readonly AppInstance instance = AppInstance.FindOrRegisterForKey(IApp.AppUserModelID);
+    private static readonly AppInstance instance = AppInstance.FindOrRegisterForKey(IShellService.AppUserModelID);
 
     private readonly IAppCommandManager appCommandManager;
+    private readonly IPlaylistService playlistService;
+
     private readonly CancellationTokenSource cancellationTokenSource;
     private readonly Task listenerTask;
 
     private readonly Subject<string> incomeFileNames = new();
     private readonly IDisposable incomeFileSubscription;
 
-    public InstanceService(IAppCommandManager appCommandManager)
+    public InstanceService(IAppCommandManager appCommandManager, IPlaylistService playlistService)
     {
         ArgumentNullException.ThrowIfNull(appCommandManager);
+        ArgumentNullException.ThrowIfNull(playlistService);
 
         this.appCommandManager = appCommandManager;
+        this.playlistService = playlistService;
 
         cancellationTokenSource = new CancellationTokenSource();
         listenerTask = new Task(async () =>
@@ -66,7 +70,14 @@ internal class InstanceService : IInstanceService
                     transmissionMode: PipeTransmissionMode.Byte,
                     options: PipeOptions.Asynchronous);
 
-                await pipeServer.WaitForConnectionAsync(CancellationToken);
+                try
+                {
+                    await pipeServer.WaitForConnectionAsync(CancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    return;
+                }
 
                 using var reader = new StreamReader(pipeServer, Encoding.UTF8);
                 var receivedData = await reader.ReadToEndAsync();
@@ -79,7 +90,7 @@ internal class InstanceService : IInstanceService
         });
 
         incomeFileSubscription = incomeFileNames
-            .Buffer(incomeFileNames.Throttle(TimeSpan.FromMilliseconds(500)))
+            .Buffer(incomeFileNames.Throttle(TimeSpan.FromMilliseconds(150)))
             .Subscribe(async fileNames => await AddFilesAndActivate(fileNames));
     }
 
@@ -127,11 +138,20 @@ internal class InstanceService : IInstanceService
         return false;
     }
 
-    public void Start(IEnumerable<string> arguments)
+    public async Task StartAsync(IEnumerable<string> arguments)
     {
         ArgumentNullException.ThrowIfNull(arguments);
 
-        arguments.ForEach(fileName => incomeFileNames.OnNext(fileName));
+        if (arguments.Any())
+        {
+            await playlistService.StartAsync(loadPlaylist: false);
+
+            arguments.ForEach(fileName => incomeFileNames.OnNext(fileName));
+        }
+        else
+        {
+            await playlistService.StartAsync(loadPlaylist: true);
+        }
 
         listenerTask.Start();
     }

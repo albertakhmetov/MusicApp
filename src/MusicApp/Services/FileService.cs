@@ -38,7 +38,7 @@ class FileService : IFileService
 {
     public FileService()
     {
-        UserDataPath = Path.GetDirectoryName(IApp.ApplicationPath)!;
+        UserDataPath = Path.GetDirectoryName(IShellService.ApplicationPath)!;
     }
 
     public string UserDataPath { get; }

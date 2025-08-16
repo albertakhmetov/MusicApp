@@ -21,10 +21,12 @@ namespace MusicApp.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.Win32;
 using MusicApp.Core;
@@ -40,14 +42,14 @@ internal class ShellService : IShellService
     private readonly string productName, productDescription;
     private readonly string appPath, appFileName, resourcePath;
 
-    public ShellService(IApp app)
+    public ShellService()
     {
-        ArgumentNullException.ThrowIfNull(app);
+        Info = GetAppInfo();
 
-        productName = app.Info.ProductName;
-        productDescription = app.Info.ProductDescription ?? "";
+        productName = Info.ProductName;
+        productDescription = Info.ProductDescription ?? "";
 
-        appPath = IApp.ApplicationPath;
+        appPath = IShellService.ApplicationPath;
         appFileName = Path.GetFileName(appPath);
         resourcePath = Path.Combine(
             $"{Path.GetDirectoryName(appPath)}",
@@ -60,6 +62,8 @@ internal class ShellService : IShellService
         isAppRegistedSubject = new BehaviorSubject<bool>(IsAppRegisted());
         IsRegistred = isAppRegistedSubject.AsObservable();
     }
+
+    public AppInfo Info { get; }
 
     public IImmutableList<FileType> SupportedFileTypes { get; }
 
@@ -143,5 +147,24 @@ internal class ShellService : IShellService
         using var registeredAppsKey = Registry.CurrentUser.OpenSubKey(@"Software\RegisteredApplications");
 
         return registeredAppsKey?.GetValue(productName) is not null;
+    }
+
+    private static AppInfo GetAppInfo()
+    {
+        var info = FileVersionInfo.GetVersionInfo(typeof(App).Assembly.Location);
+        return new AppInfo
+        {
+            ProductName = info.ProductName ?? "MusicApp",
+            ProductVersion = info.ProductVersion,
+            ProductDescription = info.Comments,
+            LegalCopyright = info.LegalCopyright,
+            FileVersion = new Version(
+                info.FileMajorPart,
+                info.FileMinorPart,
+                info.FileBuildPart,
+                info.FilePrivatePart),
+
+            IsPreRelease = Regex.IsMatch(info.ProductVersion ?? "", "[a-zA-Z]")
+        };
     }
 }
