@@ -76,7 +76,7 @@ public class Program
         services.AddSingleton<ISettingsService, SettingsService>();
 
         services.AddSingleton<IPlaybackService, PlaybackService>();
-        services.AddSingleton<IPlaylistService, PlaylistService>();
+        services.AddSingleton<IPlaylistStorageService, PlaylistStorageService>();
         services.AddSingleton<IMetadataService, MetadataService>();
 
         services.AddScoped<ScopeDataService>();

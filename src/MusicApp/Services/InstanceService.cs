@@ -42,7 +42,7 @@ internal class InstanceService : IInstanceService, IDisposable
     private static readonly AppInstance instance = AppInstance.FindOrRegisterForKey(IShellService.AppUserModelID);
 
     private readonly IAppCommandManager appCommandManager;
-    private readonly IPlaylistService playlistService;
+    private readonly IPlaylistStorageService playlistStorageService;
 
     private readonly CancellationTokenSource cancellationTokenSource;
     private readonly Task listenerTask;
@@ -50,13 +50,13 @@ internal class InstanceService : IInstanceService, IDisposable
     private readonly Subject<string> incomeFileNames = new();
     private readonly IDisposable incomeFileSubscription;
 
-    public InstanceService(IAppCommandManager appCommandManager, IPlaylistService playlistService)
+    public InstanceService(IAppCommandManager appCommandManager, IPlaylistStorageService playlistStorageService)
     {
         ArgumentNullException.ThrowIfNull(appCommandManager);
-        ArgumentNullException.ThrowIfNull(playlistService);
+        ArgumentNullException.ThrowIfNull(playlistStorageService);
 
         this.appCommandManager = appCommandManager;
-        this.playlistService = playlistService;
+        this.playlistStorageService = playlistStorageService;
 
         cancellationTokenSource = new CancellationTokenSource();
         listenerTask = new Task(async () =>
@@ -150,13 +150,13 @@ internal class InstanceService : IInstanceService, IDisposable
 
         if (arguments.Any())
         {
-            await playlistService.StartAsync(loadPlaylist: false);
+            await playlistStorageService.StartAsync(loadPlaylist: false);
 
             arguments.ForEach(fileName => incomeFileNames.OnNext(fileName));
         }
         else
         {
-            await playlistService.StartAsync(loadPlaylist: true);
+            await playlistStorageService.StartAsync(loadPlaylist: true);
         }
 
         listenerTask.Start();

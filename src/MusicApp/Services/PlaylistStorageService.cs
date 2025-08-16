@@ -35,7 +35,7 @@ using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
 
-internal class PlaylistService : IPlaylistService, IDisposable
+internal class PlaylistStorageService : IPlaylistStorageService, IDisposable
 {
     private const string PLAYLIST_FILENAME = "playlist.json";
 
@@ -44,7 +44,7 @@ internal class PlaylistService : IPlaylistService, IDisposable
     private readonly IPlaybackService playbackService;
     private readonly IMetadataService metadataService;
 
-    public PlaylistService(
+    public PlaylistStorageService(
         IAppEnvironment appEnvironment,
         IPlaybackService playbackService,
         IMetadataService metadataService)

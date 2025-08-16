@@ -24,7 +24,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public interface IPlaylistService
+public interface IPlaylistStorageService
 {
     Task StartAsync(bool loadPlaylist = true);
 }
