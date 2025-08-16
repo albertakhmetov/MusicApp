@@ -84,15 +84,16 @@ internal class SettingsService : ISettingsService, IDisposable
 
     private void LoadSettings()
     {
-        using var stream = appEnvironment
+        var settingsFileInfo = appEnvironment
             .UserDataDirectoryInfo
-            .GetFileInfo(SETTINGS_FILENAME)
-            .OpenRead();
+            .GetFileInfo(SETTINGS_FILENAME);
 
-        if (stream is null)
+        if (settingsFileInfo.Exists is false)
         {
             return;
         }
+
+        using var stream = settingsFileInfo.OpenRead();
 
         try
         {

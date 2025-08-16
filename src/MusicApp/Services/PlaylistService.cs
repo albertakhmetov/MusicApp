@@ -83,15 +83,16 @@ internal class PlaylistService : IPlaylistService, IDisposable
 
     private async Task LoadPlaylist()
     {
-        using var stream = appEnvironment
+        var playlistFileInfo = appEnvironment
             .UserDataDirectoryInfo
-            .GetFileInfo(PLAYLIST_FILENAME)
-            .OpenRead();
+            .GetFileInfo(PLAYLIST_FILENAME);
 
-        if (stream == null)
+        if (playlistFileInfo.Exists is false)
         {
             return;
         }
+
+        using var stream = playlistFileInfo.OpenRead();
 
         var stateLoader = await PlaylistLoader.Load(metadataService, stream);
 
