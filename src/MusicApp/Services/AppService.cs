@@ -47,6 +47,7 @@ using MusicApp.Core;
 using Windows.Storage.Pickers;
 using WinRT.Interop;
 using MusicApp.Core.Helpers;
+using Windows.Storage;
 
 internal class AppService : IAppService
 {

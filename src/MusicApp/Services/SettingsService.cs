@@ -36,6 +36,7 @@ using MusicApp.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Windowing;
 using Windows.Services.Maps;
+using MusicApp.Core;
 
 internal class SettingsService : ISettingsService, IDisposable
 {
@@ -43,13 +44,13 @@ internal class SettingsService : ISettingsService, IDisposable
 
     private readonly CompositeDisposable disposable = [];
     private readonly BehaviorSubject<bool> changedSubject;
-    private readonly IFileService fileService;
+    private readonly IAppEnvironment appEnvironment;
 
-    public SettingsService(IFileService fileService)
+    public SettingsService(IAppEnvironment appEnvironment)
     {
-        ArgumentNullException.ThrowIfNull(fileService);
+        ArgumentNullException.ThrowIfNull(appEnvironment);
 
-        this.fileService = fileService;
+        this.appEnvironment = appEnvironment;
 
         WindowTheme = new SettingsProperty<WindowTheme>(Core.Models.WindowTheme.System);
 
@@ -83,7 +84,10 @@ internal class SettingsService : ISettingsService, IDisposable
 
     private void LoadSettings()
     {
-        using var stream = fileService.ReadUserFile(SETTINGS_FILENAME);
+        using var stream = appEnvironment
+            .UserDataDirectoryInfo
+            .GetFileInfo(SETTINGS_FILENAME)
+            .OpenRead();
 
         if (stream is null)
         {
@@ -108,7 +112,10 @@ internal class SettingsService : ISettingsService, IDisposable
 
     private void SaveSettings()
     {
-        using var stream = fileService.WriteUserFile(SETTINGS_FILENAME, overwrite: true);
+        using var stream = appEnvironment
+            .UserDataDirectoryInfo
+            .GetFileInfo(SETTINGS_FILENAME)
+            .OpenWrite(overwrite: true);
 
         var windowTheme = WindowTheme.Value;
 

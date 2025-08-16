@@ -47,17 +47,10 @@ public class Program
         {
             PInvoke.SetCurrentProcessExplicitAppUserModelID(IShellService.AppUserModelID);
 
-            var appDirectory = Path.GetDirectoryName(IShellService.ApplicationPath);
-            if (appDirectory is not null)
-            {
-                Directory.SetCurrentDirectory(appDirectory);
-            }
-            else
-            {
-                return;
-            }
+            var environment = new AppEnvironment();
+            Directory.SetCurrentDirectory(environment.ApplicationDirectoryInfo.FullName);
 
-            using var host = AppHost.Build(CreateHost);
+            using var host = AppHost.Build(environment, CreateHost);
             host.RunAsync();
         }
         else
@@ -79,20 +72,12 @@ public class Program
         services.AddSingleton<IShellService, ShellService>();
         services.AddSingleton<IInstanceService, InstanceService>();
 
-        //services.AddSingleton<ISingleInstanceService, SingleInstanceService>();
-        //services.AddSingleton<ITaskbarMediaButtonsService, TaskbarMediaButtonsService>();
-        //services.AddSingleton<ITaskbarMediaCoverService, TaskbarMediaCoverService>();
-
-        //services.AddLazySingleton<ISingleInstanceService>();
-        //services.AddLazySingleton<ITaskbarMediaButtonsService>();
-        //services.AddLazySingleton<ITaskbarMediaCoverService>();
-
-        services.AddSingleton<IFileService, FileService>();
         services.AddSingleton<ISystemEventsService, SystemEventsService>();
         services.AddSingleton<ISettingsService, SettingsService>();
 
         services.AddSingleton<IPlaybackService, PlaybackService>();
         services.AddSingleton<IPlaylistService, PlaylistService>();
+        services.AddSingleton<IMetadataService, MetadataService>();
 
         services.AddScoped<ScopeDataService>();
         services.AddScoped<IAppService, AppService>();

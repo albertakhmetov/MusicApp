@@ -43,8 +43,6 @@ public class AppHost : IHost, IDisposable
 
     private AppHost(ServiceCollection serviceCollection)
     {
-     //   IHostEnvironment -> IAppEnvironment
-
         ArgumentNullException.ThrowIfNull(serviceCollection);
 
         lifetime = new ApplicationLifetime();
@@ -55,11 +53,12 @@ public class AppHost : IHost, IDisposable
 
     public IServiceProvider Services => serviceProvider ?? throw new ObjectDisposedException(nameof(AppHost));
 
-    public static IHost Build(Action<IServiceCollection> configureServicesDelegate)
+    public static IHost Build(IAppEnvironment appEnvironment, Action<IServiceCollection> configureServicesDelegate)
     {
         ArgumentNullException.ThrowIfNull(configureServicesDelegate);
 
         var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IAppEnvironment>(appEnvironment);
 
         configureServicesDelegate(serviceCollection);
 

@@ -20,6 +20,7 @@ namespace MusicApp.Core.Helpers;
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Text;
@@ -48,5 +49,22 @@ public static class Extensions
     public static int ToInt32(this double value)
     {
         return Convert.ToInt32(value);
+    }
+
+    public static FileInfo GetFileInfo(this DirectoryInfo directoryInfo, string fileName) => new(Path.Combine(directoryInfo.FullName, fileName));
+
+    public static FileStream OpenWrite(this FileInfo fileInfo, bool overwrite)
+    {
+        if (overwrite && fileInfo.Exists)
+        {
+            fileInfo.Delete();
+        }
+
+        return fileInfo.OpenWrite();
+    }
+
+    public static string GetFileNameWithoutExtension(this FileInfo fileInfo)
+    {
+        return Path.GetFileNameWithoutExtension(fileInfo.FullName);
     }
 }

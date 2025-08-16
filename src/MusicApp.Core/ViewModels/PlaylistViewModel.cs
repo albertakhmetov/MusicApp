@@ -38,9 +38,8 @@ public class PlaylistViewModel : ViewModel, IDisposable
     private readonly CompositeDisposable disposable = [];
 
     private readonly IShellService shellService;
-    private readonly IFileService fileService;
-    private readonly IPlaybackService playbackService;
     private readonly IAppService appService;
+    private readonly IPlaybackService playbackService;
     private readonly IAppCommandManager appCommandManager;
 
     private readonly ItemObservableCollection<PlaylistItemViewModel> items;
@@ -49,21 +48,18 @@ public class PlaylistViewModel : ViewModel, IDisposable
 
     public PlaylistViewModel(
         IShellService shellService,
-        IFileService fileService,
-        IPlaybackService playbackService,
         IAppService appService,
+        IPlaybackService playbackService,
         IAppCommandManager appCommandManager)
     {
         ArgumentNullException.ThrowIfNull(shellService);
-        ArgumentNullException.ThrowIfNull(fileService);
-        ArgumentNullException.ThrowIfNull(playbackService);
         ArgumentNullException.ThrowIfNull(appService);
+        ArgumentNullException.ThrowIfNull(playbackService);
         ArgumentNullException.ThrowIfNull(appCommandManager);
 
         this.shellService = shellService;
-        this.fileService = fileService;
-        this.playbackService = playbackService;
         this.appService = appService;
+        this.playbackService = playbackService;
         this.appCommandManager = appCommandManager;
 
         items = [];

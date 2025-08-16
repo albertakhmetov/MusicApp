@@ -18,17 +18,18 @@
  */
 namespace MusicApp.Core.Services;
 
-using System.Collections.Immutable;
-using System.Diagnostics;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using MusicApp.Core.Models;
 
-public interface IFileService
+public interface IMetadataService
 {
-    string UserDataPath { get; }
+    Task<MediaItem> LoadMediaItemAsync(string fileName);
 
-    Stream? ReadUserFile(string fileName);
+    Task<MediaItem[]> LoadMediaItemsAsync(IEnumerable<string> fileNames);
 
-    Stream WriteUserFile(string fileName, bool overwrite);
-
-    Task<IList<MediaItem>> LoadMediaItems(IEnumerable<string> fileNames);
+    Task<ImageData> LoadMediaCoverAsync(MediaItem? mediaItem);
 }

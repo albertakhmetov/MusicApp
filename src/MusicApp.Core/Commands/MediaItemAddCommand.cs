@@ -30,15 +30,15 @@ using MusicApp.Core.Services;
 
 public class MediaItemAddCommand : IAppCommand<MediaItemAddCommand.Parameters>
 {
-    private readonly IFileService fileService;
+    private readonly IMetadataService metadataService;
     private readonly IPlaybackService playbackService;
 
-    public MediaItemAddCommand(IFileService fileService, IPlaybackService playbackService)
+    public MediaItemAddCommand(IMetadataService metadataService, IPlaybackService playbackService)
     {
-        ArgumentNullException.ThrowIfNull(fileService);
+        ArgumentNullException.ThrowIfNull(metadataService);
         ArgumentNullException.ThrowIfNull(playbackService);
 
-        this.fileService = fileService;
+        this.metadataService = metadataService;
         this.playbackService = playbackService;
     }
 
@@ -53,7 +53,7 @@ public class MediaItemAddCommand : IAppCommand<MediaItemAddCommand.Parameters>
 
         var fileNames = parameters.FileNames.OrderBy(x => Path.GetFileName(x), StringLogicalComparer.Instance);
 
-        var mediaItems = await fileService.LoadMediaItems(fileNames);
+        var mediaItems = await metadataService.LoadMediaItemsAsync(fileNames);
 
         if (parameters.Overwrite)
         {

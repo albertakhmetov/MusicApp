@@ -19,6 +19,7 @@
 namespace MusicApp.Services;
 
 using Microsoft.Extensions.Hosting;
+using MusicApp.Core;
 using MusicApp.Core.Helpers;
 using MusicApp.Core.Models;
 using MusicApp.Core.Services;
@@ -39,16 +40,22 @@ internal class PlaylistService : IPlaylistService, IDisposable
     private const string PLAYLIST_FILENAME = "playlist.json";
 
     private readonly CompositeDisposable disposable = [];
+    private readonly IAppEnvironment appEnvironment;
     private readonly IPlaybackService playbackService;
-    private readonly IFileService fileService;
+    private readonly IMetadataService metadataService;
 
-    public PlaylistService(IPlaybackService playbackService, IFileService fileService)
+    public PlaylistService(
+        IAppEnvironment appEnvironment,
+        IPlaybackService playbackService,
+        IMetadataService metadataService)
     {
+        ArgumentNullException.ThrowIfNull(appEnvironment);
         ArgumentNullException.ThrowIfNull(playbackService);
-        ArgumentNullException.ThrowIfNull(fileService);
+        ArgumentNullException.ThrowIfNull(metadataService);
 
+        this.appEnvironment = appEnvironment;
         this.playbackService = playbackService;
-        this.fileService = fileService;
+        this.metadataService = metadataService;
     }
 
     public void Dispose()
@@ -76,14 +83,17 @@ internal class PlaylistService : IPlaylistService, IDisposable
 
     private async Task LoadPlaylist()
     {
-        using var stream = fileService.ReadUserFile(PLAYLIST_FILENAME);
+        using var stream = appEnvironment
+            .UserDataDirectoryInfo
+            .GetFileInfo(PLAYLIST_FILENAME)
+            .OpenRead();
 
         if (stream == null)
         {
             return;
         }
 
-        var stateLoader = await PlaylistLoader.Load(fileService, stream);
+        var stateLoader = await PlaylistLoader.Load(metadataService, stream);
 
         await playbackService.Items.SetAsync(stateLoader.Items ?? []);
 
@@ -107,7 +117,10 @@ internal class PlaylistService : IPlaylistService, IDisposable
         bool shuffleMode,
         bool repeatMode)
     {
-        using var stream = fileService.WriteUserFile(PLAYLIST_FILENAME, overwrite: true);
+        using var stream = appEnvironment
+            .UserDataDirectoryInfo
+            .GetFileInfo(PLAYLIST_FILENAME)
+            .OpenWrite(overwrite: true);
 
         var options = new JsonWriterOptions { Indented = true };
         using var writer = new Utf8JsonWriter(stream, options);
@@ -131,23 +144,23 @@ internal class PlaylistService : IPlaylistService, IDisposable
 
     private class PlaylistLoader
     {
-        private readonly IFileService fileService;
+        private readonly IMetadataService metadataService;
         private JsonNode? node;
 
-        public static async Task<PlaylistLoader> Load(IFileService fileService, Stream stream)
+        public static async Task<PlaylistLoader> Load(IMetadataService metadataService, Stream stream)
         {
-            var loader = new PlaylistLoader(fileService);
+            var loader = new PlaylistLoader(metadataService);
 
             await loader.Load(stream);
 
             return loader;
         }
 
-        private PlaylistLoader(IFileService fileService)
+        private PlaylistLoader(IMetadataService metadataService)
         {
-            ArgumentNullException.ThrowIfNull(fileService);
+            ArgumentNullException.ThrowIfNull(metadataService);
 
-            this.fileService = fileService;
+            this.metadataService = metadataService;
         }
 
         public IList<MediaItem>? Items { get; private set; }
@@ -166,7 +179,7 @@ internal class PlaylistService : IPlaylistService, IDisposable
             {
                 node = await JsonNode.ParseAsync(stream);
 
-                Items = await fileService.LoadMediaItems(GetFileNames(node));
+                Items = await metadataService.LoadMediaItemsAsync(GetFileNames(node));
                 ShuffledItems = GetShuffledItems(node);
 
                 CurrentItem = GetCurrentItem(node);
