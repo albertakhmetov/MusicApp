@@ -8,8 +8,8 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid VerticalAlignment="Top">
-        <Grid.Resources>
+    <ScrollView VerticalAlignment="Top">
+        <ScrollView.Resources>
             <Style TargetType="Border">
                 <Style.Setters>
                     <Setter Property="BorderBrush" Value="{ThemeResource CardStrokeColorDefaultBrush}"/>
@@ -21,7 +21,7 @@
                     <Setter Property="MinHeight" Value="60"/>
                 </Style.Setters>
             </Style>
-        </Grid.Resources>
+        </ScrollView.Resources>
 
         <StackPanel Orientation="Vertical">
             <Border>
@@ -99,9 +99,19 @@
                     Text="{x:Bind ViewModel.ProductVersion}"
                     Style="{ThemeResource BodyTextBlockStyle}"
                     HorizontalAlignment="Stretch"
-                    Margin="4,8"/>
+                    Margin="4,8"/>                
+
+                <HyperlinkButton 
+                    Margin="-8,0,0,0" 
+                    NavigateUri="https://github.com/albertakhmetov/MusicApp"
+                    Content="Project home page"/>
+
+                <HyperlinkButton 
+                    Margin="-8,0,0,0" 
+                    NavigateUri="https://raw.githubusercontent.com/albertakhmetov/MusicApp/refs/heads/main/LICENSE"
+                    Content="Licensed under General Public License v3.0"/>
 
             </StackPanel>
         </StackPanel>
-    </Grid>
+    </ScrollView>
 </UserControl>
