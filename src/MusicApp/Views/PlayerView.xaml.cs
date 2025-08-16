@@ -34,14 +34,14 @@ public sealed partial class PlayerView : UserControl
     private readonly ITaskbarMediaCoverService taskbarMediaCoverService;
 
     public PlayerView(
-        IApp app,
+        IWindowService windowService,
         IShellService shellService,
         PlayerViewModel playerViewModel,
         PlaylistViewModel playlistViewModel,
         ITaskbarMediaButtonsService taskbarMediaButtonsService,
         ITaskbarMediaCoverService taskbarMediaCoverService)
     {
-        ArgumentNullException.ThrowIfNull(app);
+        ArgumentNullException.ThrowIfNull(windowService);
         ArgumentNullException.ThrowIfNull(shellService);
         ArgumentNullException.ThrowIfNull(playerViewModel);
         ArgumentNullException.ThrowIfNull(playlistViewModel);
@@ -54,7 +54,7 @@ public sealed partial class PlayerView : UserControl
         PlayerViewModel = playerViewModel;
         PlaylistViewModel = playlistViewModel;
 
-        SettingsCommand = new RelayCommand(_ => app.GetWindow<SettingsViewModel>().Show());
+        SettingsCommand = new RelayCommand(async _ => (await windowService.GetWindowAsync<SettingsViewModel>()).Show());
 
         InitializeComponent();
     }

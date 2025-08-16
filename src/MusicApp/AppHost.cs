@@ -101,7 +101,7 @@ public class AppHost : IHost, IDisposable
                 var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
                 SynchronizationContext.SetSynchronizationContext(context);
 
-                var app = (App)Services.GetRequiredService<IApp>();
+                var app = Services.GetRequiredService<App>();
                 app.UnhandledException += (_, e) => logger.LogCritical(e.Exception, "Unhandled Exception");
             });
         }

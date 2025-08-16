@@ -21,6 +21,7 @@ namespace MusicApp.Core.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -28,6 +29,25 @@ using MusicApp.Core.Models;
 
 public interface IShellService
 {
+#if DEBUG
+    static string AppUserModelID => "com.albertakhmetov.MusicApp.Debug";
+#else
+    static string AppUserModelID => "com.albertakhmetov.MusicApp";
+#endif
+
+    static string ApplicationPath
+    {
+        get
+        {
+            var processModule = Process.GetCurrentProcess().MainModule;
+            return processModule is null
+                ? throw new InvalidOperationException("Process.GetCurrentProcess().MainModule is null")
+                : processModule.FileName;
+        }
+    }
+
+    AppInfo Info { get; }
+
     IImmutableList<FileType> SupportedFileTypes { get; }
 
     IObservable<bool> IsRegistred { get; }

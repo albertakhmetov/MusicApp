@@ -36,20 +36,17 @@ public class SettingsViewModel : ViewModel, IDisposable
     private readonly CompositeDisposable disposable = [];
 
     private readonly ISettingsService settingsService;
-    private readonly IApp app;
     private readonly IShellService shellService;
 
     private WindowTheme windowTheme;
     private bool isAppRegistred;
 
-    public SettingsViewModel(ISettingsService settingsService, IApp app, IShellService shellService)
+    public SettingsViewModel(ISettingsService settingsService, IShellService shellService)
     {
         ArgumentNullException.ThrowIfNull(settingsService);
-        ArgumentNullException.ThrowIfNull(app);
         ArgumentNullException.ThrowIfNull(shellService);
 
         this.settingsService = settingsService;
-        this.app = app;
         this.shellService = shellService;
 
         WindowThemes = [WindowTheme.System, WindowTheme.Dark, WindowTheme.Light];
@@ -81,15 +78,17 @@ public class SettingsViewModel : ViewModel, IDisposable
 
     public IImmutableList<WindowTheme> WindowThemes { get; }
 
-    public string ProductName => app.Info.ProductName;
+    public string ProductName => shellService.Info.ProductName;
 
-    public string Version => app.Info.FileVersion.ToString(3);
+    public string Version => shellService.Info.FileVersion.ToString(3);
 
-    public string LegalCopyright => app.Info.LegalCopyright ?? string.Empty;
+    public string LegalCopyright => shellService.Info.LegalCopyright ?? string.Empty;
 
-    public string ProductDescription => app.Info.ProductDescription ?? string.Empty;
+    public string ProductDescription => shellService.Info.ProductDescription ?? string.Empty;
 
-    public string ProductVersion => string.IsNullOrEmpty(app.Info.ProductVersion) ? string.Empty : $"Build {app.Info.ProductVersion}";
+    public string ProductVersion => string.IsNullOrEmpty(shellService.Info.ProductVersion) 
+        ? string.Empty 
+        : $"Build {shellService.Info.ProductVersion}";
 
     public void Dispose()
     {

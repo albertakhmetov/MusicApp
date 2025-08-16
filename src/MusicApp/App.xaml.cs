@@ -51,39 +51,40 @@ using MusicApp.Core.Helpers;
 using System.Windows.Navigation;
 using System.Text.RegularExpressions;
 using Windows.Foundation;
+using Windows.ApplicationModel.Chat;
 
-public partial class App : Application, IDisposable, IApp
+public partial class App : Application
 {
-    private readonly CompositeDisposable disposable = [];
-
-    private readonly Dictionary<string, IServiceScope> windowScopes = [];
-
-    private readonly IServiceProvider serviceProvider;
-    private readonly ISettingsService settingsService;
-    private readonly ISystemEventsService systemEventsService;
     private readonly IHostApplicationLifetime lifetime;
-    private readonly IAppCommandManager appCommandManager;
+    private readonly ISettingsService settingsService;
+    private readonly IInstanceService instanceService;
+    private readonly IWindowService windowService;
     private readonly ILogger<App> logger;
 
     private IAppWindow? mainWindow;
 
-    public App(IServiceProvider serviceProvider)
+    public App(
+        IHostApplicationLifetime lifetime,
+        ISettingsService settingsService,
+        IInstanceService instanceService,
+        IWindowService windowService,
+        ILogger<App> logger)
     {
-        ArgumentNullException.ThrowIfNull(serviceProvider);
+        ArgumentNullException.ThrowIfNull(lifetime);
+        ArgumentNullException.ThrowIfNull(settingsService);
+        ArgumentNullException.ThrowIfNull(instanceService);
+        ArgumentNullException.ThrowIfNull(windowService);
+        ArgumentNullException.ThrowIfNull(logger);
 
-        this.serviceProvider = serviceProvider;
-
-        settingsService = serviceProvider.GetRequiredService<ISettingsService>();
-        systemEventsService = serviceProvider.GetRequiredService<ISystemEventsService>();
-        lifetime = serviceProvider.GetRequiredService<IHostApplicationLifetime>();
-        appCommandManager = serviceProvider.GetRequiredService<IAppCommandManager>();
-        logger = serviceProvider.GetRequiredService<ILogger<App>>();
-
-        Info = GetAppInfo();
+        this.lifetime = lifetime;
+        this.settingsService = settingsService;
+        this.instanceService = instanceService;
+        this.windowService = windowService;
+        this.logger = logger;
 
         InitializeComponent();
 
-        var theme = settingsService.WindowTheme.Value;
+        var theme = this.settingsService.WindowTheme.Value;
 
         switch (theme)
         {
@@ -97,77 +98,7 @@ public partial class App : Application, IDisposable, IApp
         }
     }
 
-    public AppInfo Info { get; }
-
-    public IAppWindow GetWindow<T>() where T : ViewModel
-    {
-        var viewModelName = typeof(T).Name;
-
-        if (windowScopes.TryGetValue(viewModelName, out var scope) is false)
-        {
-            scope = serviceProvider.CreateScope();
-
-            var window = scope.ServiceProvider.GetRequiredKeyedService<Window>(viewModelName);
-            window.Title = Info.ProductName;
-            window.Closed += OnWindowClosed;
-
-            var scopeData = scope.ServiceProvider.GetRequiredService<ScopeDataService>();
-            scopeData.Init((IAppWindow)window);
-
-            windowScopes.Add(viewModelName, scope);
-
-            var view = scope.ServiceProvider.GetRequiredKeyedService<UserControl>(viewModelName);
-
-            if (window.Content is Grid grid)
-            {
-                grid.Children.Insert(1, view);
-
-                if (window.AppWindow.Presenter is OverlappedPresenter presenter && presenter.HasTitleBar)
-                {
-                    Grid.SetRow(view, 1);
-                }
-            }
-            else
-            {
-                window.Content = view;
-            }
-        }
-
-        return scope.ServiceProvider.GetRequiredService<ScopeDataService>().Window;
-    }
-
-    public void Dispose()
-    {
-        if (disposable.IsDisposed is false)
-        {
-            disposable.Dispose();
-        }
-
-        GC.SuppressFinalize(this);
-    }
-
-    private void OnWindowClosed(object sender, WindowEventArgs args)
-    {
-        const string windowSuffix = "Window";
-        var name = sender?.GetType().Name;
-
-        if (sender is Window window && name?.EndsWith(windowSuffix) is true)
-        {
-            var viewModelName = $"{name[..^windowSuffix.Length]}ViewModel";
-
-            if (windowScopes.TryGetValue(viewModelName, out var scope))
-            {
-                window.Content = null;
-                window.Closed -= OnWindowClosed;
-
-                scope.Dispose();
-
-                windowScopes.Remove(viewModelName);
-            }
-        }
-    }
-
-    protected override void OnLaunched(LaunchActivatedEventArgs _)
+    protected override async void OnLaunched(LaunchActivatedEventArgs _)
     {
         try
         {
@@ -175,7 +106,7 @@ public partial class App : Application, IDisposable, IApp
 
             logger.LogInformation("Creating main window");
 
-            mainWindow = GetWindow<PlayerViewModel>();
+            mainWindow = await windowService.GetWindowAsync<PlayerViewModel>();
             mainWindow.Show();
             mainWindow.Closed += (_, _) => lifetime.StopApplication();
 
@@ -183,30 +114,11 @@ public partial class App : Application, IDisposable, IApp
 
             logger.LogInformation("Arguments count (with the app path): {Count}", args.Length);
 
-            serviceProvider.GetRequiredService<IInstanceService>().Start(args.Skip(1));
+            await instanceService.StartAsync(args.Skip(1));
         }
         catch (Exception ex)
         {
             logger.LogCritical(ex, "OnLaunched exception");
         }
-    }
-
-    private static AppInfo GetAppInfo()
-    {
-        var info = FileVersionInfo.GetVersionInfo(typeof(App).Assembly.Location);
-        return new AppInfo
-        {
-            ProductName = info.ProductName ?? "MusicApp",
-            ProductVersion = info.ProductVersion,
-            ProductDescription = info.Comments,
-            LegalCopyright = info.LegalCopyright,
-            FileVersion = new Version(
-        info.FileMajorPart,
-        info.FileMinorPart,
-        info.FileBuildPart,
-        info.FilePrivatePart),
-
-            IsPreRelease = Regex.IsMatch(info.ProductVersion ?? "", "[a-zA-Z]")
-        };
     }
 }

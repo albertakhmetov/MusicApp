@@ -45,9 +45,9 @@ public class Program
     {
         if (InstanceService.IsFirstInstance)
         {
-            PInvoke.SetCurrentProcessExplicitAppUserModelID(IApp.AppUserModelID);
+            PInvoke.SetCurrentProcessExplicitAppUserModelID(IShellService.AppUserModelID);
 
-            var appDirectory = Path.GetDirectoryName(IApp.ApplicationPath);
+            var appDirectory = Path.GetDirectoryName(IShellService.ApplicationPath);
             if (appDirectory is not null)
             {
                 Directory.SetCurrentDirectory(appDirectory);
@@ -74,7 +74,8 @@ public class Program
             builder.AddNLog();
         });
 
-        services.AddSingleton<IApp, App>();
+        services.AddSingleton<App>();
+        services.AddSingleton<IWindowService, WindowService>();
         services.AddSingleton<IShellService, ShellService>();
         services.AddSingleton<IInstanceService, InstanceService>();
 
