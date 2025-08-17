@@ -33,7 +33,7 @@
 		<PackageIcon></PackageIcon>
 		<PackageIconUrl />
 
-		<SelfContained Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</SelfContained>
+		<!--<SelfContained Condition="'$(Configuration)'=='Release'">true</SelfContained>-->
 		<WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
 		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
