@@ -57,7 +57,9 @@ public class SettingsViewModel : ViewModel, IDisposable
         ProductVersion = info.ProductVersion ?? throw new InvalidOperationException("Product Version can't be null");
         ProductDescription = info.Comments ?? throw new InvalidOperationException("Comments can't be null");
         LegalCopyright = info.LegalCopyright ?? throw new InvalidOperationException("Legal Copyright can't be null");
-        Version = new Version(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart, info.FilePrivatePart).ToString(3);
+
+        Version = ProductVersion.Split('+').FirstOrDefault() ??
+            new Version(info.FileMajorPart, info.FileMinorPart, info.FileBuildPart, info.FilePrivatePart).ToString(3);
 
         InitSubscriptions();
     }

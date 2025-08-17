@@ -32,6 +32,8 @@ public interface IAppEnvironment
 
     string ProductDescription { get; }
 
+    bool IsPreRelease { get; }
+
     FileInfo ApplicationFileInfo { get; }
 
     DirectoryInfo ApplicationDirectoryInfo { get; }

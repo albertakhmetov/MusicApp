@@ -21,7 +21,8 @@
 		<Copyright>© 2025, Albert Akhmetov</Copyright>
 		<Authors>Albert Akhmetov</Authors>
 		<Product>MusicApp</Product>
-		<Version>0.1.0</Version>
+		<VersionPrefix>0.1.0</VersionPrefix>
+		<VersionSuffix>preview</VersionSuffix>
 		<Description>A minimal music player built with C# and WinUI 3, featuring a clean and intuitive interface. Supports basic playback, track switching, and volume control.</Description>
 		<ApplicationIcon>Assets\app.ico</ApplicationIcon>
 		<PackageIcon></PackageIcon>

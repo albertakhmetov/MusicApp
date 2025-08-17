@@ -34,7 +34,8 @@ internal class AppEnvironment : IAppEnvironment
         var info = FileVersionInfo.GetVersionInfo(typeof(App).Assembly.Location);
         ProductName = info.ProductName ?? throw new InvalidOperationException("Product Name can't be null");
         ProductDescription = info.Comments ?? throw new InvalidOperationException("Comments can't be null");
-        ProductVersion = info.ProductVersion ?? throw new InvalidOperationException("Product Version can't be null");
+        ProductVersion = info.ProductVersion?.Split('+').FirstOrDefault() ?? throw new InvalidOperationException("Invalid Product Version");
+        IsPreRelease = ProductVersion.Contains('-');
 
         var processFileName = Process.GetCurrentProcess().MainModule?.FileName;
         if (string.IsNullOrEmpty(processFileName))
@@ -52,6 +53,8 @@ internal class AppEnvironment : IAppEnvironment
     public string ProductVersion { get; }
 
     public string ProductDescription { get; }
+
+    public bool IsPreRelease { get; }
 
     public FileInfo ApplicationFileInfo { get; }
 
