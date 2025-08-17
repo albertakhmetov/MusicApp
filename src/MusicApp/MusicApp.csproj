@@ -31,8 +31,9 @@
 		<Description>A minimal music player built with C# and WinUI 3, featuring a clean and intuitive interface. Supports basic playback, track switching, and volume control.</Description>
 		<ApplicationIcon>Assets\app.ico</ApplicationIcon>
 		<PackageIcon></PackageIcon>
-		<PackageIconUrl />	
-		
+		<PackageIconUrl />
+
+		<SelfContained Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</SelfContained>
 		<WindowsAppSdkSelfContained>true</WindowsAppSdkSelfContained>
 		<SatelliteResourceLanguages>en</SatelliteResourceLanguages>
 		<BuiltInComInteropSupport>true</BuiltInComInteropSupport>
@@ -163,5 +164,9 @@
 
 	<ItemGroup>
 	  <PRIResource Remove="Properties\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Properties\" />
 	</ItemGroup>
 </Project>

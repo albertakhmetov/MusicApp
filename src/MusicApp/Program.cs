@@ -34,7 +34,11 @@ using MusicApp.Core.ViewModels;
 using MusicApp.Native;
 using MusicApp.Services;
 using MusicApp.Views;
+using NLog;
+using NLog.Common;
+using NLog.Config;
 using NLog.Extensions.Logging;
+using NLog.Targets;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 
@@ -61,6 +65,8 @@ public class Program
 
     private static void CreateHost(IServiceCollection services)
     {
+        ConfigureLogger();
+
         services.AddLogging(builder =>
         {
             builder.ClearProviders();
@@ -100,5 +106,30 @@ public class Program
         services.AddScoped<IAppCommandManager, AppCommandManager>();
         services.AddTransient<IAppCommand<MediaItemAddCommand.Parameters>, MediaItemAddCommand>();
         services.AddTransient<IAppCommand<MediaItemRemoveCommand.Parameters>, MediaItemRemoveCommand>();
+    }
+
+    private static void ConfigureLogger()
+    {
+        InternalLogger.LogFile = null;
+        InternalLogger.LogLevel = NLog.LogLevel.Off;
+
+        var fileTarget = new FileTarget("logfile")
+        {
+            FileName = "logs/app.log",
+
+            ArchiveFileName = "logs/app-{#}.log",
+            ArchiveEvery = FileArchivePeriod.Day,
+            ArchiveNumbering = ArchiveNumberingMode.Date,
+            ArchiveDateFormat = "yyyy-MM-dd",
+            MaxArchiveFiles = 7,
+
+            Layout = "${longdate} ${level:uppercase=true} ${message} ${exception}"
+        };
+
+        var loggerConfig = new LoggingConfiguration();
+        loggerConfig.AddTarget(fileTarget);
+        loggerConfig.AddRule(NLog.LogLevel.Info, NLog.LogLevel.Fatal, fileTarget.Name);
+
+        LogManager.Configuration = loggerConfig;
     }
 }
