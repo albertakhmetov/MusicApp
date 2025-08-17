@@ -1,0 +1,58 @@
+name: Build MusicApp release
+
+on:
+  push:
+    tags:
+    - 'v*'
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  CONFIGURATION: Release
+  OUTPUT_DIR: Output/MusicApp
+  ARTIFACT_NAME: MusicApp
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        configuration: [Release]
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Publish
+        run: dotnet publish ./src/MusicApp/MusicApp.csproj -c Release -o ${{ env.OUTPUT_DIR }}
+
+      - name: Create ZIP archive
+        run: |
+          $artifactName = "${{ env.ARTIFACT_NAME }}_${{ github.ref_name }}.zip"
+          Compress-Archive -Path ${{ env.OUTPUT_DIR }} -DestinationPath $artifactName -Force
+          echo "artifact_name=$artifactName" >> $env:GITHUB_ENV
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.artifact_name }}
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ github.ref }}
+          name: Release ${{ github.ref_name }}
+          body: |
+            Release notes go here...
+            - Feature 1
+            - Bug fix 1
+          draft: true
+          prerelease: false
+          files: ${{ env.artifact_name }}
