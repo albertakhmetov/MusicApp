@@ -144,6 +144,11 @@ internal class InstanceService : IInstanceService, IDisposable
             throw new InvalidOperationException("SynchronizationContext.Current can't be null");
         }
 
+        incomeFileSubscription = incomeFileNames
+            .Buffer(incomeFileNames.Throttle(TimeSpan.FromMilliseconds(250)))
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(async fileNames => await AddFilesAndActivate(fileNames));   
+        
         if (arguments.Any())
         {
             await playlistStorageService.StartAsync(loadPlaylist: false);
@@ -154,11 +159,6 @@ internal class InstanceService : IInstanceService, IDisposable
         {
             await playlistStorageService.StartAsync(loadPlaylist: true);
         }
-
-        incomeFileSubscription = incomeFileNames
-            .Buffer(incomeFileNames.Throttle(TimeSpan.FromMilliseconds(250)))
-            .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(async fileNames => await AddFilesAndActivate(fileNames));
 
         listenerTask.Start();
     }
