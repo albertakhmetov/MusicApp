@@ -25,6 +25,7 @@ using System.Text;
 using System.Threading.Tasks;
 using MusicApp.Core.Models;
 using MusicApp.Core.Services;
+using Windows.Media.AppBroadcasting;
 using Windows.Storage;
 using Windows.Storage.FileProperties;
 
@@ -77,7 +78,7 @@ internal class MetadataService : IMetadataService
 
         var mediaItems = new List<MediaItem>();
 
-        foreach(var fileName in fileNames)
+        foreach (var fileName in fileNames.Where(x => string.IsNullOrEmpty(x) is false))
         {
             mediaItems.Add(await LoadMediaItemAsync(fileName));
         }
