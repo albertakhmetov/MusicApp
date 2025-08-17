@@ -3,4 +3,4 @@ A minimal music player built with C# and WinUI 3, featuring a clean and intuitiv
 
 The [preview build](https://github.com/albertakhmetov/MusicApp/releases/tag/v0.1.0-preview) is now available!
 
-![App Window](app.png)
+<img src="app.png" width="400" alt="App Window">
