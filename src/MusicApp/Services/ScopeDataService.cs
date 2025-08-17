@@ -29,7 +29,7 @@ internal class ScopeDataService : IDisposable
 {
     private IAppWindow? window;
 
-    public IAppWindow Window => window ?? throw new InvalidOperationException("IAppWindow isn't initialized");
+    public IAppWindow AppWindow => window ?? throw new InvalidOperationException("IAppWindow isn't initialized");
 
     public void Init(IAppWindow window)
     {

@@ -51,10 +51,23 @@ internal class WindowService : IWindowService
             var window = scope.ServiceProvider.GetRequiredKeyedService<Window>(viewModelName);
             window.Closed += OnWindowClosed;
 
+            var appWindow = (IAppWindow)window;
+
             var scopeData = scope.ServiceProvider.GetRequiredService<ScopeDataService>();
             scopeData.Init((IAppWindow)window);
 
             scopes.Add(viewModelName, scope);
+            await Task.Delay(TimeSpan.FromMilliseconds(150));
+
+            foreach (var service in scope.ServiceProvider.GetServices<IAppWindowService>())
+            {
+                service.Init(appWindow);
+            }
+
+            foreach (var service in scope.ServiceProvider.GetKeyedServices<IAppWindowService>(viewModelName))
+            {
+                service.Init(appWindow);
+            }
 
             var view = scope.ServiceProvider.GetRequiredKeyedService<UserControl>(viewModelName);
 
@@ -71,11 +84,9 @@ internal class WindowService : IWindowService
             {
                 window.Content = view;
             }
-
-            await Task.Delay(TimeSpan.FromMilliseconds(150));
         }
 
-        return scope.ServiceProvider.GetRequiredService<ScopeDataService>().Window;
+        return scope.ServiceProvider.GetRequiredService<ScopeDataService>().AppWindow;
     }
 
     private void OnWindowClosed(object sender, WindowEventArgs args)

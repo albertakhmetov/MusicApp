@@ -29,6 +29,7 @@ using System.Reactive.Subjects;
 using System.Runtime.InteropServices;
 using MusicApp.Core;
 using MusicApp.Core.Helpers;
+using MusicApp.Core.Services;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.UI.Shell;
@@ -67,7 +68,6 @@ internal sealed class Taskbar : IDisposable
             .ObserveOn(TaskPoolScheduler.Default)
             .Subscribe(buttonId => ExecuteCommand(buttonId))
             .DisposeWith(disposable);
-
 
         InitSubscriptions();
 

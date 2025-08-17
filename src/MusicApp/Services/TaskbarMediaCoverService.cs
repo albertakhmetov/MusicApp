@@ -20,29 +20,21 @@ using MusicApp.Core.Services;
 using MusicApp.Native;
 using MusicApp.Views;
 
-internal class TaskbarMediaCoverService : ITaskbarMediaCoverService, IDisposable
+internal class TaskbarMediaCoverService : IAppWindowService, IDisposable
 {
     private readonly CompositeDisposable disposable = [];
 
     private readonly IPlaybackService playbackService;
 
-    private readonly Thumbnail thumbnail;
-    private readonly IAppWindow window;
+    private Thumbnail? thumbnail;
+    private IAppWindow? window;
     private ImageData? imageData;
 
-    public TaskbarMediaCoverService(IPlaybackService playbackService, IAppWindow window)
+    public TaskbarMediaCoverService(IPlaybackService playbackService)
     {
         ArgumentNullException.ThrowIfNull(playbackService);
-        ArgumentNullException.ThrowIfNull(window);
 
         this.playbackService = playbackService;
-        this.window = window;
-
-        thumbnail = new Thumbnail(this.window);
-        thumbnail.Preview += OnPreview;
-        thumbnail.LivePreview += OnLivePreview;
-
-        InitSubscriptions();
     }
 
     private ImageData? ImageData
@@ -62,15 +54,22 @@ internal class TaskbarMediaCoverService : ITaskbarMediaCoverService, IDisposable
             disposable.Dispose();
         }
 
-        thumbnail.Dispose();
+        thumbnail?.Dispose();
     }
 
-    private void InitSubscriptions()
+    public void Init(IAppWindow window)
     {
         if (SynchronizationContext.Current is null)
         {
             throw new InvalidOperationException("SynchronizationContext.Current can't be null");
-        }
+        }       
+        
+        ArgumentNullException.ThrowIfNull(window);
+        this.window = window;
+
+        thumbnail = new Thumbnail(this.window);
+        thumbnail.Preview += OnPreview;
+        thumbnail.LivePreview += OnLivePreview;
 
         playbackService
             .MediaItemCover

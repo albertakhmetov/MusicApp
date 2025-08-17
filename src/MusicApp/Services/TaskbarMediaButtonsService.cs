@@ -32,30 +32,48 @@ using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 using MusicApp.Native;
 
-internal class TaskbarMediaButtonsService : ITaskbarMediaButtonsService
+internal class TaskbarMediaButtonsService : IAppWindowService, IDisposable
 {
     private readonly CompositeDisposable disposable = [];
 
     private readonly ISystemEventsService systemEventsService;
     private readonly IPlaybackService playbackService;
 
-    private readonly Taskbar taskbar;
-    private readonly TaskbarButton previousButton, nextButton, togglePlayButton;
+    private Taskbar? taskbar;
+    private TaskbarButton? previousButton, nextButton, togglePlayButton;
     private IconNative? previousIcon, nextIcon, playIcon, pauseIcon;
 
     public TaskbarMediaButtonsService(
         ISystemEventsService systemEventsService,
-        IPlaybackService playbackService,
-        IAppWindow appWindow)
+        IPlaybackService playbackService)
     {
         ArgumentNullException.ThrowIfNull(systemEventsService);
         ArgumentNullException.ThrowIfNull(playbackService);
-        ArgumentNullException.ThrowIfNull(appWindow);
 
         this.systemEventsService = systemEventsService;
         this.playbackService = playbackService;
+    }
 
-        taskbar = new Taskbar(appWindow);
+    public void Dispose()
+    {
+        if (disposable?.IsDisposed is false)
+        {
+            disposable.Dispose();
+        }
+
+        taskbar?.Dispose();
+    }
+
+    public void Init(IAppWindow window)
+    {
+        if (SynchronizationContext.Current is null)
+        {
+            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
+        }
+
+        ArgumentNullException.ThrowIfNull(window);
+
+        taskbar = new Taskbar(window);
 
         previousButton = taskbar.AddButton(nameof(previousButton));
         previousButton.ToolTip = "Previous Track";
@@ -67,26 +85,6 @@ internal class TaskbarMediaButtonsService : ITaskbarMediaButtonsService
         nextButton = taskbar.AddButton(nameof(nextButton));
         nextButton.ToolTip = "Next Track";
         nextButton.Command = new RelayCommand(_ => playbackService.GoNext());
-
-        InitSubscriptions();
-    }
-
-    public void Dispose()
-    {
-        if (disposable?.IsDisposed is false)
-        {
-            disposable.Dispose();
-        }
-
-        taskbar.Dispose();
-    }
-
-    private void InitSubscriptions()
-    {
-        if (SynchronizationContext.Current is null)
-        {
-            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
-        }
 
         Observable
             .CombineLatest(
@@ -139,6 +137,11 @@ internal class TaskbarMediaButtonsService : ITaskbarMediaButtonsService
 
     private async void LoadIcons(bool isDarkTheme, int iconWidth, int iconHeight)
     {
+        if (previousButton is null || nextButton is null || togglePlayButton is null)
+        {
+            return;
+        }
+
         previousIcon = Load(isDarkTheme ? "Dark.Previous" : "Light.Previous");
         nextIcon = Load(isDarkTheme ? "Dark.Next" : "Light.Next");
         playIcon = Load(isDarkTheme ? "Dark.Play" : "Light.Play");
@@ -151,15 +154,12 @@ internal class TaskbarMediaButtonsService : ITaskbarMediaButtonsService
         togglePlayButton.Icon = (isPaused ? playIcon : pauseIcon)?.ResolveFrame(iconWidth, iconHeight);
     }
 
-    private IconNative Load(string name)
+    private static IconNative Load(string name)
     {
         using var stream = typeof(App).Assembly.GetManifestResourceStream($"MusicApp.Assets.{name}.ico");
 
-        if (stream == null)
-        {
-            throw new InvalidOperationException($"Can't load {name} icon");
-        }
-
-        return new IconNative(stream);
+        return stream is not null
+            ? new IconNative(stream)
+            : throw new InvalidOperationException($"Can't load {name} icon");
     }
 }

@@ -24,6 +24,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-public interface ITaskbarMediaButtonsService : IDisposable
+public interface IAppWindowService
 {
+    void Init(IAppWindow appWindow);
 }

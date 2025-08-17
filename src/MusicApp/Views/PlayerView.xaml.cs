@@ -30,25 +30,16 @@ using MusicApp.Core.ViewModels;
 
 public sealed partial class PlayerView : UserControl
 {
-    private readonly ITaskbarMediaButtonsService taskbarMediaButtonsService;
-    private readonly ITaskbarMediaCoverService taskbarMediaCoverService;
-
     public PlayerView(
         IWindowService windowService,
         IShellService shellService,
         PlayerViewModel playerViewModel,
-        PlaylistViewModel playlistViewModel,
-        ITaskbarMediaButtonsService taskbarMediaButtonsService,
-        ITaskbarMediaCoverService taskbarMediaCoverService)
+        PlaylistViewModel playlistViewModel)
     {
         ArgumentNullException.ThrowIfNull(windowService);
         ArgumentNullException.ThrowIfNull(shellService);
         ArgumentNullException.ThrowIfNull(playerViewModel);
         ArgumentNullException.ThrowIfNull(playlistViewModel);
-        ArgumentNullException.ThrowIfNull(taskbarMediaCoverService);
-
-        this.taskbarMediaButtonsService = taskbarMediaButtonsService;
-        this.taskbarMediaCoverService = taskbarMediaCoverService;
 
         ShellService = shellService;
         PlayerViewModel = playerViewModel;

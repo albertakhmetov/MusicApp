@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipes;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -48,7 +49,7 @@ internal class InstanceService : IInstanceService, IDisposable
     private readonly Task listenerTask;
 
     private readonly Subject<string> incomeFileNames = new();
-    private readonly IDisposable incomeFileSubscription;
+    private IDisposable? incomeFileSubscription;
 
     public InstanceService(IAppCommandManager appCommandManager, IPlaylistStorageService playlistStorageService)
     {
@@ -88,16 +89,6 @@ internal class InstanceService : IInstanceService, IDisposable
                 }
             }
         });
-
-        if (SynchronizationContext.Current == null)
-        {
-            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
-        }
-
-        incomeFileSubscription = incomeFileNames
-            .Buffer(incomeFileNames.Throttle(TimeSpan.FromMilliseconds(250)))
-            .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(async fileNames => await AddFilesAndActivate(fileNames));
     }
 
     public static bool IsFirstInstance => instance.IsCurrent;
@@ -148,6 +139,11 @@ internal class InstanceService : IInstanceService, IDisposable
     {
         ArgumentNullException.ThrowIfNull(arguments);
 
+        if (SynchronizationContext.Current == null)
+        {
+            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
+        }
+
         if (arguments.Any())
         {
             await playlistStorageService.StartAsync(loadPlaylist: false);
@@ -159,15 +155,21 @@ internal class InstanceService : IInstanceService, IDisposable
             await playlistStorageService.StartAsync(loadPlaylist: true);
         }
 
+        incomeFileSubscription = incomeFileNames
+            .Buffer(incomeFileNames.Throttle(TimeSpan.FromMilliseconds(250)))
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(async fileNames => await AddFilesAndActivate(fileNames));
+
         listenerTask.Start();
     }
 
     public void Dispose()
     {
-        if (cancellationTokenSource.IsCancellationRequested is false)
+        if (incomeFileSubscription is not null)
         {
             cancellationTokenSource.Cancel();
-            incomeFileSubscription.Dispose();
+            incomeFileSubscription?.Dispose();
+            incomeFileSubscription = null;
         }
     }
 

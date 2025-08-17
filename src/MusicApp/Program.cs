@@ -85,10 +85,10 @@ public class Program
         services.AddKeyedScoped<Window, PlayerWindow>(nameof(PlayerViewModel));
         services.AddKeyedScoped<Window, SettingsWindow>(nameof(SettingsViewModel));
 
-        services.AddScoped(sp => sp.GetRequiredService<ScopeDataService>().Window);
+        services.AddScoped(sp => sp.GetRequiredService<ScopeDataService>().AppWindow);
 
-        services.AddScoped<ITaskbarMediaButtonsService, TaskbarMediaButtonsService>();
-        services.AddScoped<ITaskbarMediaCoverService, TaskbarMediaCoverService>();
+        services.AddKeyedScoped<IAppWindowService, TaskbarMediaButtonsService>(nameof(PlayerViewModel));
+        services.AddKeyedScoped<IAppWindowService, TaskbarMediaCoverService>(nameof(PlayerViewModel));
 
         services.AddKeyedScoped<UserControl, PlayerView>(nameof(PlayerViewModel));
         services.AddKeyedScoped<UserControl, SettingsView>(nameof(SettingsViewModel));
