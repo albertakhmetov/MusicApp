@@ -19,20 +19,13 @@
 namespace MusicApp.Native;
 
 using System;
-using System.Collections.Generic;
 using System.Drawing;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
-using System.Linq;
 using System.Reactive.Disposables;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 using Microsoft.Win32.SafeHandles;
 using MusicApp.Core;
 using MusicApp.Core.Helpers;
-using MusicApp.Core.Models;
 using Windows.Win32;
 using Windows.Win32.Foundation;
 using Windows.Win32.Graphics.Dwm;
@@ -92,16 +85,34 @@ internal sealed class Thumbnail : IDisposable
 
         var callback = LivePreview;
 
-        if (callback != null)
+        if (callback is not null)
         {
             await callback.Invoke(this, args);
 
-            if (args.Bitmap != null)
+            if (args.Bitmap is not null)
             {
                 using var bitmap = args.Bitmap;
                 using var hBitmap = new HBitmapSafeHandle(bitmap);
 
                 PInvoke.DwmSetIconicLivePreviewBitmap((HWND)appWindow.Handle, hBitmap, null, 0).ThrowOnFailure();
+            }
+        }
+    }
+
+    private async void SetPreview(PreviewEventArgs args)
+    {
+        var callback = Preview;
+
+        if (callback is not null)
+        {
+            await callback.Invoke(this, args);
+
+            if (args.Bitmap is not null)
+            {
+                using var bitmap = args.Bitmap;
+                using var hBitmap = new HBitmapSafeHandle(bitmap);
+
+                PInvoke.DwmSetIconicThumbnail((HWND)appWindow.Handle, hBitmap, 0).ThrowOnFailure();
             }
         }
     }
@@ -139,15 +150,7 @@ internal sealed class Thumbnail : IDisposable
                     Height = (int)(lParam & 0xFFFF)
                 };
 
-                thumbnail.Preview?.Invoke(thumbnail, args).Wait();
-
-                if (args.Bitmap != null)
-                {
-                    using var bitmap = args.Bitmap;
-                    using var hBitmap = new HBitmapSafeHandle(bitmap);
-
-                    PInvoke.DwmSetIconicThumbnail((HWND)thumbnail.appWindow.Handle, hBitmap, 0).ThrowOnFailure();
-                }
+                thumbnail.SetPreview(args);
 
                 return true;
             }
