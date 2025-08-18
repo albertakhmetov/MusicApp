@@ -57,7 +57,6 @@ public class AppItemContainer : ContentControl, INotifyPropertyChanged
         typeof(AppItemContainer),
         new PropertyMetadata(false, null));
 
-    private CompositeDisposable? disposable;
     private uint lastReleaseTickCount;
     private bool isHovered, isPressed;
 
