@@ -36,6 +36,7 @@ using Windows.Media;
 using Windows.Media.Core;
 using Windows.Media.Playback;
 using Windows.Storage;
+using Windows.Storage.Streams;
 
 internal class PlaybackService : IPlaybackService, IDisposable
 {
@@ -357,15 +358,29 @@ internal class PlaybackService : IPlaybackService, IDisposable
             currentCover.Dispose();
         }
 
-        var cover = await metadataService.LoadMediaCoverAsync(mediaItem);
-        mediaItemCoverSubject.OnNext(cover);
-
-        //await UpdateSmtc(cover);
+        await UpdateCover(mediaItem);
 
         var duration = playbackItem?.Source?.IsOpen == true
             ? Convert.ToInt32(playbackItem.Source.Duration?.TotalSeconds ?? 0)
             : 0;
         durationSubject.OnNext(duration);
+    }
+
+    private async Task UpdateCover(MediaItem mediaItem)
+    {
+        var mediaFile = await StorageFile.GetFileFromPathAsync(mediaItem.FileName);
+        using var mediaFileThumbnail = await mediaFile.GetThumbnailAsync(
+            Windows.Storage.FileProperties.ThumbnailMode.MusicView, 
+            500,
+            Windows.Storage.FileProperties.ThumbnailOptions.UseCurrentScale);
+
+        var updater = mediaPlayer.SystemMediaTransportControls.DisplayUpdater;
+        updater.Thumbnail = RandomAccessStreamReference.CreateFromStream(mediaFileThumbnail);
+        updater.Type = MediaPlaybackType.Music;
+        updater.Update();
+
+        var cover = new ImageData(mediaFileThumbnail.AsStreamForRead());
+        mediaItemCoverSubject.OnNext(cover);
     }
 
     private void UpdateNavigationState()
