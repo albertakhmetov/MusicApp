@@ -44,11 +44,15 @@ using Windows.Win32.Foundation;
 
 public class Program
 {
+    private static readonly AppInstance instance = AppInstance.FindOrRegisterForKey(IShellService.AppUserModelID);
+
     [STAThread]
     public static void Main(string[] args)
     {
-        if (InstanceService.IsFirstInstance)
+        if (instance.IsCurrent)
         {
+            instance.Activated += (_, _) => PInvoke.SetForegroundWindow((HWND)Process.GetCurrentProcess().MainWindowHandle);
+
             PInvoke.SetCurrentProcessExplicitAppUserModelID(IShellService.AppUserModelID);
 
             var environment = new AppEnvironment();
@@ -59,7 +63,13 @@ public class Program
         }
         else
         {
-            InstanceService.ActivateFirstInstance(args).GetAwaiter().GetResult();
+            InstanceService.SendDataToFirstInstance(args).Wait();
+
+            var activatedEventArgs = AppInstance.GetCurrent().GetActivatedEventArgs();
+            instance
+                .RedirectActivationToAsync(activatedEventArgs)
+                .AsTask()
+                .Wait(TimeSpan.FromSeconds(5));
         }
     }
 

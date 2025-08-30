@@ -40,8 +40,6 @@ internal class InstanceService : IInstanceService, IDisposable
 {
     private static readonly string PipeName = $"{IShellService.AppUserModelID}.instance.pipe";
 
-    private static readonly AppInstance instance = AppInstance.FindOrRegisterForKey(IShellService.AppUserModelID);
-
     private readonly IAppCommandManager appCommandManager;
     private readonly IPlaylistStorageService playlistStorageService;
 
@@ -91,17 +89,10 @@ internal class InstanceService : IInstanceService, IDisposable
         });
     }
 
-    public static bool IsFirstInstance => instance.IsCurrent;
-
     private CancellationToken CancellationToken => cancellationTokenSource.Token;
 
-    public static async Task ActivateFirstInstance(string[] args)
+    public static async Task SendDataToFirstInstance(string[] args)
     {
-        if (instance.IsCurrent is true)
-        {
-            throw new InvalidOperationException();
-        }
-
         var data = SerializeData(args);
 
         using var pipeClient = new NamedPipeClientStream(".", PipeName, PipeDirection.Out, PipeOptions.Asynchronous);
@@ -184,8 +175,6 @@ internal class InstanceService : IInstanceService, IDisposable
             Overwrite = false,
             Play = true,
             FileNames = fileNames.ToImmutableArray()
-        });
-
-        PInvoke.SetForegroundWindow((HWND)Process.GetCurrentProcess().MainWindowHandle);
+        });        
     }
 }
