@@ -19,39 +19,14 @@
 namespace MusicApp;
 
 using System;
-using System.Collections.Immutable;
-using System.Text;
-using Microsoft.Extensions.DependencyInjection;
+using System.Reactive.Linq;
 using Microsoft.Extensions.Hosting;
-using Microsoft.UI;
-using Microsoft.UI.Dispatching;
-using Microsoft.UI.Windowing;
+using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Microsoft.Windows.AppLifecycle;
-using MusicApp.Views;
-using MusicApp.Core.Commands;
+using MusicApp.Core;
+using MusicApp.Core.Models;
 using MusicApp.Core.Services;
 using MusicApp.Core.ViewModels;
-using MusicApp.Services;
-using WinRT.Interop;
-using MusicApp.Core.Models;
-using System.Runtime.InteropServices;
-using MusicApp.Helpers;
-using Microsoft.Extensions.Logging;
-using NLog.Extensions.Logging;
-using System.Diagnostics;
-using Windows.Win32;
-using System.Web;
-using System.Xml.Schema;
-using MusicApp.Core;
-using System.Reactive.Disposables;
-using System.Reactive.Linq;
-using MusicApp.Core.Helpers;
-using System.Windows.Navigation;
-using System.Text.RegularExpressions;
-using Windows.Foundation;
-using Windows.ApplicationModel.Chat;
 
 public partial class App : Application
 {
