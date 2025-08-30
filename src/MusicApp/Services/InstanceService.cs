@@ -21,20 +21,15 @@ namespace MusicApp.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics;
-using System.Diagnostics.CodeAnalysis;
 using System.IO.Pipes;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Windows.AppLifecycle;
-using MusicApp.Core;
+using Microsoft.Extensions.Logging;
 using MusicApp.Core.Commands;
 using MusicApp.Core.Helpers;
 using MusicApp.Core.Services;
-using Windows.Win32;
-using Windows.Win32.Foundation;
 
 internal class InstanceService : IInstanceService, IDisposable
 {
@@ -42,6 +37,7 @@ internal class InstanceService : IInstanceService, IDisposable
 
     private readonly IAppCommandManager appCommandManager;
     private readonly IPlaylistStorageService playlistStorageService;
+    private readonly ILogger logger;
 
     private readonly CancellationTokenSource cancellationTokenSource;
     private readonly Task listenerTask;
@@ -49,13 +45,18 @@ internal class InstanceService : IInstanceService, IDisposable
     private readonly Subject<string> incomeFileNames = new();
     private IDisposable? incomeFileSubscription;
 
-    public InstanceService(IAppCommandManager appCommandManager, IPlaylistStorageService playlistStorageService)
+    public InstanceService(
+        IAppCommandManager appCommandManager,
+        IPlaylistStorageService playlistStorageService,
+        ILogger<InstanceService> logger)
     {
         ArgumentNullException.ThrowIfNull(appCommandManager);
         ArgumentNullException.ThrowIfNull(playlistStorageService);
+        ArgumentNullException.ThrowIfNull(logger);
 
         this.appCommandManager = appCommandManager;
         this.playlistStorageService = playlistStorageService;
+        this.logger = logger;
 
         cancellationTokenSource = new CancellationTokenSource();
         listenerTask = new Task(async () =>
@@ -78,12 +79,21 @@ internal class InstanceService : IInstanceService, IDisposable
                     return;
                 }
 
-                using var reader = new StreamReader(pipeServer, Encoding.UTF8);
-                var receivedData = await reader.ReadToEndAsync();
-
-                foreach (var fileName in DeserializeData(receivedData))
+                try
                 {
-                    incomeFileNames.OnNext(fileName);
+                    using var reader = new StreamReader(pipeServer, Encoding.UTF8);
+                    var receivedData = await reader.ReadToEndAsync();
+
+                    foreach (var fileName in DeserializeData(receivedData))
+                    {
+                        incomeFileNames.OnNext(fileName);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    logger.LogError(exception, "Error during receiving instance data.");
+
+                    throw;
                 }
             }
         });
@@ -138,8 +148,8 @@ internal class InstanceService : IInstanceService, IDisposable
         incomeFileSubscription = incomeFileNames
             .Buffer(incomeFileNames.Throttle(TimeSpan.FromMilliseconds(250)))
             .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(async fileNames => await AddFilesAndActivate(fileNames));   
-        
+            .Subscribe(async fileNames => await AddFilesAndActivate(fileNames));
+
         if (arguments.Any())
         {
             await playlistStorageService.StartAsync(loadPlaylist: false);
@@ -175,6 +185,6 @@ internal class InstanceService : IInstanceService, IDisposable
             Overwrite = false,
             Play = true,
             FileNames = fileNames.ToImmutableArray()
-        });        
+        });
     }
 }

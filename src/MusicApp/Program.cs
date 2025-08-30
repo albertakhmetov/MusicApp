@@ -20,18 +20,15 @@ namespace MusicApp;
 
 using System;
 using System.Diagnostics;
-using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Windows.AppLifecycle;
-using MusicApp.Core;
 using MusicApp.Core.Commands;
 using MusicApp.Core.Services;
 using MusicApp.Core.ViewModels;
-using MusicApp.Native;
 using MusicApp.Services;
 using MusicApp.Views;
 using NLog;
