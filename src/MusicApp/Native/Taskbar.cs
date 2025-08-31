@@ -42,26 +42,24 @@ internal sealed class Taskbar : IDisposable
     private readonly CompositeDisposable disposable = [];
 
     private readonly IAppWindow appWindow;
-    private readonly List<TaskbarButton> buttonsList;
-    private readonly Subject<TaskbarButton> buttonChangedSubject, buttonsListChangedSubject;
+    private readonly List<TaskbarButton> buttons = [];
 
+    private readonly ComObjectSafeHandle<ITaskbarList3> taskbarList;
     private readonly Receiver receiver;
 
-    private ComObjectSafeHandle<ITaskbarList3> taskbarList;
-
-    public Taskbar(IAppWindow appWindow)
+    public Taskbar(IAppWindow appWindow, params TaskbarButton[] buttons)
     {
         ArgumentNullException.ThrowIfNull(appWindow);
         ArgumentNullException.ThrowIfNull(appWindow.Procedure);
+        ArgumentNullException.ThrowIfNull(buttons);
+        ArgumentOutOfRangeException.ThrowIfZero(buttons.Length);
 
         this.appWindow = appWindow;
 
-        buttonsList = new List<TaskbarButton>();
-        buttonsListChangedSubject = new Subject<TaskbarButton>();
-        buttonChangedSubject = new Subject<TaskbarButton>();
-
         taskbarList = new ComObjectSafeHandle<ITaskbarList3>((ITaskbarList3)new CTaskbarList());
         taskbarList.Value.HrInit();
+
+        RegisterButtons(buttons);
 
         receiver = new Receiver();
         receiver.ButtonClicked
@@ -69,11 +67,75 @@ internal sealed class Taskbar : IDisposable
             .Subscribe(buttonId => ExecuteCommand(buttonId))
             .DisposeWith(disposable);
 
-        InitSubscriptions();
-
         this.appWindow.Procedure
             .Subscribe(WM_COMMAND, receiver)
             .DisposeWith(disposable);
+    }
+
+    private void RegisterButtons(TaskbarButton[] buttons)
+    {
+        foreach (var button in buttons)
+        {
+            button.EnabledChanged += OnButtonChanged;
+            button.VisibleChanged += OnButtonChanged;
+
+            this.buttons.Add(button);
+        }
+
+        taskbarList.Value.ThumbBarAddButtons(
+            (HWND)appWindow.Handle,
+            buttons.Select(CreateThumbButton).ToArray());
+    }
+
+    private THUMBBUTTON CreateThumbButton(TaskbarButton button, int arg2)
+    {
+        var flags = THUMBBUTTONFLAGS.THBF_ENABLED | THUMBBUTTONFLAGS.THBF_DISMISSONCLICK; ;
+
+        if (button.IsEnabled is false)
+        {
+            flags |= THUMBBUTTONFLAGS.THBF_DISABLED;
+        }
+
+        if (button.IsVisible is false)
+        {
+            flags |= THUMBBUTTONFLAGS.THBF_HIDDEN;
+        }
+
+        return new THUMBBUTTON
+        {
+            dwMask = THUMBBUTTONMASK.THB_FLAGS | THUMBBUTTONMASK.THB_ICON | THUMBBUTTONMASK.THB_TOOLTIP,
+            iId = button.Id,
+            dwFlags = flags,
+            hIcon = (HICON)button.Icon.DangerousGetHandle(),
+            szTip = button.ToolTip
+        };
+    }
+
+    private void OnButtonChanged(object? sender, EventArgs _)
+    {
+        if (sender is TaskbarButton button)
+        {
+            var flags = THUMBBUTTONFLAGS.THBF_ENABLED | THUMBBUTTONFLAGS.THBF_DISMISSONCLICK;
+
+            if (button.IsEnabled is false)
+            {
+                flags |= THUMBBUTTONFLAGS.THBF_DISABLED;
+            }
+
+            if (button.IsVisible is false)
+            {
+                flags |= THUMBBUTTONFLAGS.THBF_HIDDEN;
+            }
+
+            var thumbButton = new THUMBBUTTON
+            {
+                dwMask = THUMBBUTTONMASK.THB_FLAGS,
+                iId = button.Id,
+                dwFlags = flags,
+            };
+
+            taskbarList.Value.ThumbBarUpdateButtons((HWND)appWindow.Handle, [thumbButton]);
+        }
     }
 
     public void Dispose()
@@ -85,112 +147,19 @@ internal sealed class Taskbar : IDisposable
 
         taskbarList?.Dispose();
 
-        foreach (var b in buttonsList)
+        foreach (var b in buttons)
         {
+            b.EnabledChanged -= OnButtonChanged;
+            b.VisibleChanged -= OnButtonChanged;
             b.Dispose();
-        }
-    }
-
-    public TaskbarButton? GetButton(string name) => buttonsList.FirstOrDefault(x => x.Name == name);
-
-    public TaskbarButton AddButton(string name)
-    {
-        var button = new TaskbarButton(name);
-        button.PropertyChanged += OnButtonPropertyChanged;
-
-        buttonsList.Add(button);
-        buttonsListChangedSubject.OnNext(button);
-
-        return button;
-    }
-
-    public bool RemoveButton(string name)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(name);
-
-        var button = buttonsList.FirstOrDefault(x => x.Name == name);
-
-        if (button != null && buttonsList.Remove(button))
-        {
-            button.PropertyChanged -= OnButtonPropertyChanged;
-
-            buttonsListChangedSubject.OnNext(button);
-            button.Dispose();
-
-            return true;
-        }
-        else
-        {
-            return false;
-        }
-    }
-
-    private void OnButtonPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (sender is TaskbarButton button)
-        {
-            buttonChangedSubject.OnNext(button);
         }
     }
 
     private void ExecuteCommand(int buttonId)
     {
-        var button = buttonsList.FirstOrDefault(button => button.Id == buttonId);
+        var button = buttons.FirstOrDefault(button => button.Id == buttonId);
 
         button?.Command?.Execute(button.CommandParameter);
-    }
-
-    private void InitSubscriptions()
-    {
-        if (SynchronizationContext.Current == null)
-        {
-            throw new InvalidOperationException("SynchronizationContext.Current can't be null");
-        }
-
-        buttonChangedSubject
-            .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(button => UpdateButtons([button]))
-            .DisposeWith(disposable);
-
-        buttonsListChangedSubject
-            .Throttle(TimeSpan.FromMilliseconds(150))
-            .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(_ => AddButtons())
-            .DisposeWith(disposable);
-    }
-
-    private void AddButtons()
-    {
-        var thumbButtons = PrepareThumbButtons(buttonsList);
-
-        taskbarList.Value.ThumbBarAddButtons((HWND)appWindow.Handle, thumbButtons.AsSpan());
-    }
-
-    private unsafe void UpdateButtons(IList<TaskbarButton> buttons)
-    {
-        var thumbButtons = PrepareThumbButtons(buttons);
-
-        taskbarList.Value.ThumbBarUpdateButtons((HWND)appWindow.Handle, thumbButtons.AsSpan());
-    }
-
-    private static THUMBBUTTON[] PrepareThumbButtons(IList<TaskbarButton> buttons)
-    {
-        var thumbButtons = new THUMBBUTTON[buttons.Count];
-
-        for (var i = 0; i < thumbButtons.Length; i++)
-        {
-            thumbButtons[i] = new THUMBBUTTON
-            {
-                dwMask = THUMBBUTTONMASK.THB_FLAGS | THUMBBUTTONMASK.THB_ICON | THUMBBUTTONMASK.THB_TOOLTIP,
-                iId = buttons[i].Id,
-                dwFlags = THUMBBUTTONFLAGS.THBF_DISMISSONCLICK | 
-                    (buttons[i].IsEnabled ? THUMBBUTTONFLAGS.THBF_ENABLED : THUMBBUTTONFLAGS.THBF_DISABLED),
-                hIcon = (HICON)(buttons[i].Icon?.DangerousGetHandle() ?? nint.Zero),
-                szTip = buttons[i].ToolTip ?? string.Empty
-            };
-        }
-
-        return thumbButtons;
     }
 
     private sealed class Receiver : IAppWindowProcedure.IReceiver

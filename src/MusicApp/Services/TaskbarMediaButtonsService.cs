@@ -23,6 +23,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -39,9 +40,9 @@ internal class TaskbarMediaButtonsService : IAppWindowService, IDisposable
     private readonly ISystemEventsService systemEventsService;
     private readonly IPlaybackService playbackService;
 
+    private IAppWindow? appWindow;
     private Taskbar? taskbar;
-    private TaskbarButton? previousButton, nextButton, togglePlayButton;
-    private IconNative? previousIcon, nextIcon, playIcon, pauseIcon;
+    private TaskbarButton? previousButton, nextButton, playButton, pauseButton;
 
     public TaskbarMediaButtonsService(
         ISystemEventsService systemEventsService,
@@ -66,25 +67,62 @@ internal class TaskbarMediaButtonsService : IAppWindowService, IDisposable
 
     public void Init(IAppWindow window)
     {
-        if (SynchronizationContext.Current is null)
+        ArgumentNullException.ThrowIfNull(window);
+
+        appWindow = window;
+
+        InitSubscriptions();
+    }
+
+    private void InitTaskbar(bool isDarkTheme, int iconWidth, int iconHeight)
+    {
+        if (appWindow is null)
+        {
+            throw new InvalidOperationException("Window isn't initialized.");
+        }
+
+        var theme = isDarkTheme ? "Dark" : "Light";
+
+        previousButton = new TaskbarButton(LoadIcon($"{theme}.Previous", iconWidth, iconHeight))
+        {
+            ToolTip = "Previous Track",
+            Command = new RelayCommand(_ => playbackService.GoPrevious())
+        };
+
+        playButton = new TaskbarButton(LoadIcon($"{theme}.Play", iconWidth, iconHeight))
+        {
+            ToolTip = "Play",
+            Command = new RelayCommand(_ => playbackService.Play())
+        };
+
+        pauseButton = new TaskbarButton(LoadIcon($"{theme}.Pause", iconWidth, iconHeight))
+        {
+            ToolTip = "Pause",
+            Command = new RelayCommand(_ => playbackService.Pause())
+        };
+
+        nextButton = new TaskbarButton(LoadIcon($"{theme}.Next", iconWidth, iconHeight))
+        {
+            ToolTip = "Next Track",
+            Command = new RelayCommand(_ => playbackService.GoNext())
+        };
+
+        taskbar?.Dispose();
+
+        taskbar = new Taskbar(
+            appWindow,
+            previousButton,
+            playButton,
+            pauseButton,
+            nextButton);
+    }
+
+    private void InitSubscriptions()
+    {
+        if (SynchronizationContext.Current == null)
         {
             throw new InvalidOperationException("SynchronizationContext.Current can't be null");
         }
-
-        ArgumentNullException.ThrowIfNull(window);
-
-        taskbar = new Taskbar(window);
-
-        previousButton = taskbar.AddButton(nameof(previousButton));
-        previousButton.ToolTip = "Previous Track";
-        previousButton.Command = new RelayCommand(_ => playbackService.GoPrevious());
-
-        togglePlayButton = taskbar.AddButton(nameof(togglePlayButton));
-        togglePlayButton.Command = new RelayCommand(_ => playbackService.TogglePlayback());
-
-        nextButton = taskbar.AddButton(nameof(nextButton));
-        nextButton.ToolTip = "Next Track";
-        nextButton.Command = new RelayCommand(_ => playbackService.GoNext());
 
         Observable
             .CombineLatest(
@@ -93,73 +131,63 @@ internal class TaskbarMediaButtonsService : IAppWindowService, IDisposable
                 systemEventsService.IconHeight,
                 (IsDarkTheme, IconWidth, IconHeight) => new { IsDarkTheme, IconWidth, IconHeight })
             .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(x => LoadIcons(x.IsDarkTheme, x.IconWidth, x.IconHeight))
+            .Subscribe(x => InitTaskbar(x.IsDarkTheme, x.IconWidth, x.IconHeight))
+            .DisposeWith(disposable);
+
+        Observable
+            .CombineLatest(
+                playbackService.CanGoPrevious.DistinctUntilChanged(),
+                playbackService.CanGoNext.DistinctUntilChanged(),
+                (CanGoPrevious, CanGoNext) => new { CanGoPrevious, CanGoNext })
+            .Throttle(TimeSpan.FromMilliseconds(150))
+            .ObserveOn(SynchronizationContext.Current)
+            .Subscribe(x => UpdateNavigation(x.CanGoPrevious, x.CanGoNext))
             .DisposeWith(disposable);
 
         playbackService
             .State
-            .Select(x => x == PlaybackState.Paused)
+            .Select(x => x == PlaybackState.Playing)
             .Throttle(TimeSpan.FromMilliseconds(150))
             .DistinctUntilChanged()
             .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(isPaused =>
-            {
-                togglePlayButton.ToolTip = isPaused ? "Play" : "Pause";
-                togglePlayButton.Icon = isPaused ? playIcon?[7] : pauseIcon?[7];
-            })
-            .DisposeWith(disposable);
-
-        playbackService
-            .State
-            .Select(x => x == PlaybackState.Paused || x == PlaybackState.Playing)
-            .Throttle(TimeSpan.FromMilliseconds(150))
-            .DistinctUntilChanged()
-            .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(isActivePlayback => togglePlayButton.IsEnabled = isActivePlayback)
-            .DisposeWith(disposable);
-
-        playbackService
-            .CanGoPrevious
-            .Throttle(TimeSpan.FromMilliseconds(150))
-            .DistinctUntilChanged()
-            .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(canGoPrevious => previousButton.IsEnabled = canGoPrevious)
-            .DisposeWith(disposable);
-
-        playbackService
-            .CanGoNext
-            .Throttle(TimeSpan.FromMilliseconds(150))
-            .DistinctUntilChanged()
-            .ObserveOn(SynchronizationContext.Current)
-            .Subscribe(canGoNext => nextButton.IsEnabled = canGoNext)
+            .Subscribe(UpdatePlaybackState)
             .DisposeWith(disposable);
     }
 
-    private async void LoadIcons(bool isDarkTheme, int iconWidth, int iconHeight)
+    private void UpdateNavigation(bool canGoPrevious, bool canGoNext)
     {
-        if (previousButton is null || nextButton is null || togglePlayButton is null)
+        if (previousButton is not null)
         {
-            return;
+            previousButton.IsEnabled = canGoPrevious;
         }
 
-        previousIcon = Load(isDarkTheme ? "Dark.Previous" : "Light.Previous");
-        nextIcon = Load(isDarkTheme ? "Dark.Next" : "Light.Next");
-        playIcon = Load(isDarkTheme ? "Dark.Play" : "Light.Play");
-        pauseIcon = Load(isDarkTheme ? "Dark.Pause" : "Light.Pause");
-
-        var isPaused = await playbackService.State.FirstAsync() == PlaybackState.Paused;
-
-        previousButton.Icon = previousIcon?.ResolveFrame(iconWidth, iconHeight);
-        nextButton.Icon = nextIcon?.ResolveFrame(iconWidth, iconHeight);
-        togglePlayButton.Icon = (isPaused ? playIcon : pauseIcon)?.ResolveFrame(iconWidth, iconHeight);
+        if (nextButton is not null)
+        {
+            nextButton.IsEnabled = canGoNext;
+        }
     }
 
-    private static IconNative Load(string name)
+    private void UpdatePlaybackState(bool isPlaying)
+    {
+        if (playButton is not null)
+        {
+            playButton.IsVisible = !isPlaying;
+        }
+
+        if (pauseButton is not null)
+        {
+            pauseButton.IsVisible = isPlaying;
+        }
+    }
+
+    private static SafeHandle LoadIcon(string name, int iconWidth, int iconHeight)
     {
         using var stream = typeof(App).Assembly.GetManifestResourceStream($"MusicApp.Assets.{name}.ico");
 
-        return stream is not null
+        var nativeIcon = stream is not null
             ? new IconNative(stream)
             : throw new InvalidOperationException($"Can't load {name} icon");
+
+        return nativeIcon.ResolveFrame(iconWidth, iconHeight);
     }
 }

@@ -25,73 +25,82 @@ using System.Reactive.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 using System.Windows.Input;
 using MusicApp.Core;
 
-internal class TaskbarButton : ObservableObject, IDisposable
+internal sealed class TaskbarButton : IDisposable
 {
     private static uint IdCounter = 0;
 
     private bool isEnabled = true, isVisible = true;
-    private string? toolTip;
-    private SafeHandle? icon;
 
-    public TaskbarButton(string name)
+    public TaskbarButton(SafeHandle icon)
     {
-        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(icon);
 
-        Name = name;
-        Id = IdCounter++;
+        isEnabled = true;
+        isVisible = true;
+
+        Id = ++IdCounter;
+        Icon = icon;
     }
 
     public uint Id { get; }
 
-    public string Name { get; }
+    public SafeHandle Icon { get; }
+
+    public required string ToolTip { get; init; }
+
+    public required ICommand Command { get; init; }
+
+    public object? CommandParameter { get; init; }
 
     public bool IsEnabled
     {
         get => isEnabled;
-        set => Set(ref isEnabled, value);
+        set
+        {
+            if (isEnabled != value)
+            {
+                isEnabled = value;
+                OnEnabledChanged();
+            }
+        }
     }
 
     public bool IsVisible
     {
         get => isVisible;
-        set => Set(ref isVisible, value);
-    }
-
-    public string? ToolTip
-    {
-        get => toolTip;
-        set => Set(ref toolTip, value);
-    }
-
-    public SafeHandle? Icon
-    {
-        get => icon;
         set
         {
-            icon?.Dispose();
-            icon = value;
-            Invalidate(nameof(Icon));
+            if (isVisible != value)
+            {
+                isVisible = value;
+                OnVisibleChanged();
+            }
         }
     }
 
-    public ICommand? Command
-    {
-        get;
-        set;
-    }
+    public event EventHandler? EnabledChanged;
 
-    public object? CommandParameter
-    {
-        get;
-        set;
-    }
+    public event EventHandler? VisibleChanged;
 
     public void Dispose()
     {
-        icon?.Dispose();
-        icon = null;
+        if (Icon.IsClosed is false && Icon.IsInvalid is false)
+        {
+            Icon.Dispose();
+        }
+    }
+
+    private void OnEnabledChanged()
+    {
+        EnabledChanged?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnVisibleChanged()
+    {
+        VisibleChanged?.Invoke(this, EventArgs.Empty);
     }
 }
