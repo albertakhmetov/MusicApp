@@ -183,7 +183,8 @@ internal sealed class Taskbar : IDisposable
             {
                 dwMask = THUMBBUTTONMASK.THB_FLAGS | THUMBBUTTONMASK.THB_ICON | THUMBBUTTONMASK.THB_TOOLTIP,
                 iId = buttons[i].Id,
-                dwFlags = buttons[i].IsEnabled ? THUMBBUTTONFLAGS.THBF_ENABLED : THUMBBUTTONFLAGS.THBF_DISABLED,
+                dwFlags = THUMBBUTTONFLAGS.THBF_DISMISSONCLICK | 
+                    (buttons[i].IsEnabled ? THUMBBUTTONFLAGS.THBF_ENABLED : THUMBBUTTONFLAGS.THBF_DISABLED),
                 hIcon = (HICON)(buttons[i].Icon?.DangerousGetHandle() ?? nint.Zero),
                 szTip = buttons[i].ToolTip ?? string.Empty
             };

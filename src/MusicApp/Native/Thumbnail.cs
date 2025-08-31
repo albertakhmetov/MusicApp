@@ -60,7 +60,7 @@ internal sealed class Thumbnail : IDisposable
 
     public event PreviewEventHandler? Preview;
 
-    public event PreviewEventHandler? LivePreview;
+    public event LivePreviewEventHandler? LivePreview;
 
     public void Invalidate()
     {
@@ -83,11 +83,11 @@ internal sealed class Thumbnail : IDisposable
             Height = 0
         };
 
-        var callback = LivePreview;
+        var livePreview = LivePreview;
 
-        if (callback is not null)
+        if (livePreview is not null)
         {
-            await callback.Invoke(this, args);
+            await livePreview.Invoke(this, args);
 
             if (args.Bitmap is not null)
             {
@@ -99,13 +99,13 @@ internal sealed class Thumbnail : IDisposable
         }
     }
 
-    private async void SetPreview(PreviewEventArgs args)
+    private void SetPreview(PreviewEventArgs args)
     {
-        var callback = Preview;
+        var preview = Preview;
 
-        if (callback is not null)
+        if (preview is not null)
         {
-            await callback.Invoke(this, args);
+            preview.Invoke(this, args);
 
             if (args.Bitmap is not null)
             {
@@ -166,7 +166,9 @@ internal sealed class Thumbnail : IDisposable
         }
     }
 
-    public delegate Task PreviewEventHandler(Thumbnail sender, PreviewEventArgs e);
+    public delegate void PreviewEventHandler(Thumbnail sender, PreviewEventArgs e);
+
+    public delegate Task LivePreviewEventHandler(Thumbnail sender, PreviewEventArgs e);
 
     public sealed class PreviewEventArgs : EventArgs
     {

@@ -48,8 +48,8 @@ public class SystemEventsService : IDisposable, ISystemEventsService
 
         appDarkThemeSubject = new BehaviorSubject<bool>(ShouldAppsUseDarkMode());
         systemDarkThemeSubject = new BehaviorSubject<bool>(ShouldSystemUseDarkMode());
-        iconWidthSubject = new BehaviorSubject<int>(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXICON));
-        iconHeightSubject = new BehaviorSubject<int>(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYICON));
+        iconWidthSubject = new BehaviorSubject<int>(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CXSMICON));
+        iconHeightSubject = new BehaviorSubject<int>(PInvoke.GetSystemMetrics(SYSTEM_METRICS_INDEX.SM_CYSMICON));
 
         AppDarkTheme = appDarkThemeSubject.AsObservable();
         SystemDarkTheme = systemDarkThemeSubject.AsObservable();

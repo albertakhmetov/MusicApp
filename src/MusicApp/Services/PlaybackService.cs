@@ -368,19 +368,26 @@ internal class PlaybackService : IPlaybackService, IDisposable
 
     private async Task UpdateCover(MediaItem mediaItem)
     {
-        var mediaFile = await StorageFile.GetFileFromPathAsync(mediaItem.FileName);
-        using var mediaFileThumbnail = await mediaFile.GetThumbnailAsync(
-            Windows.Storage.FileProperties.ThumbnailMode.MusicView, 
-            500,
-            Windows.Storage.FileProperties.ThumbnailOptions.UseCurrentScale);
+        if (mediaItem.IsEmpty is false)
+        {
+            var mediaFile = await StorageFile.GetFileFromPathAsync(mediaItem.FileName);
+            using var mediaFileThumbnail = await mediaFile.GetThumbnailAsync(
+                Windows.Storage.FileProperties.ThumbnailMode.MusicView,
+                500,
+                Windows.Storage.FileProperties.ThumbnailOptions.UseCurrentScale);
 
-        var updater = mediaPlayer.SystemMediaTransportControls.DisplayUpdater;
-        updater.Thumbnail = RandomAccessStreamReference.CreateFromStream(mediaFileThumbnail);
-        updater.Type = MediaPlaybackType.Music;
-        updater.Update();
+            var updater = mediaPlayer.SystemMediaTransportControls.DisplayUpdater;
+            updater.Thumbnail = RandomAccessStreamReference.CreateFromStream(mediaFileThumbnail);
+            updater.Type = MediaPlaybackType.Music;
+            updater.Update();
 
-        var cover = new ImageData(mediaFileThumbnail.AsStreamForRead());
-        mediaItemCoverSubject.OnNext(cover);
+            var cover = new ImageData(mediaFileThumbnail.AsStreamForRead());
+            mediaItemCoverSubject.OnNext(cover);
+        }
+        else
+        {
+            mediaItemCoverSubject.OnNext(ImageData.Empty);
+        }
     }
 
     private void UpdateNavigationState()

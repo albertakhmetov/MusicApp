@@ -73,8 +73,8 @@ internal class TaskbarMediaCoverService : IAppWindowService, IDisposable
         if (SynchronizationContext.Current is null)
         {
             throw new InvalidOperationException("SynchronizationContext.Current can't be null");
-        }       
-        
+        }
+
         ArgumentNullException.ThrowIfNull(window);
         this.window = window;
 
@@ -100,19 +100,15 @@ internal class TaskbarMediaCoverService : IAppWindowService, IDisposable
             .DisposeWith(disposable);
     }
 
-    private Task OnPreview(Thumbnail sender, Thumbnail.PreviewEventArgs e)
+    private void OnPreview(Thumbnail sender, Thumbnail.PreviewEventArgs e)
     {
-        var minSideSize = Math.Min(e.Width, e.Height);
-
-        var bitmap = new Bitmap(minSideSize, minSideSize, PixelFormat.Format32bppArgb);
+        var bitmap = new Bitmap(e.Width, e.Height, PixelFormat.Format32bppArgb);
 
         using var stream = imageData?.IsEmpty == false
             ? imageData.GetStream()
             : typeof(Taskbar).Assembly.GetManifestResourceStream($"MusicApp.Assets.app.png")!;
 
         using var image = System.Drawing.Image.FromStream(stream);
-
-        var padding = imageData?.IsEmpty == false ? 0 : minSideSize / 3;
 
         using var g = Graphics.FromImage(bitmap);
         g.CompositingMode = CompositingMode.SourceOver;
@@ -123,11 +119,18 @@ internal class TaskbarMediaCoverService : IAppWindowService, IDisposable
 
         g.Clear(Color.Transparent);
 
-        g.DrawImage(image, new Rectangle(padding, padding, minSideSize - padding * 2, minSideSize - padding * 2));
+        var targetWidth = Math.Min(image.Width, Math.Min(e.Width, e.Height));
+        var targetHeight = Math.Min(image.Height, Math.Min(e.Width, e.Height));
+
+        g.DrawImage(
+            image,
+            new Rectangle(
+               (e.Width - targetWidth) / 2,
+               (e.Height - targetHeight) / 2,
+               targetWidth,
+               targetHeight));
 
         e.Bitmap = bitmap;
-
-        return Task.CompletedTask;
     }
 
     private async Task OnLivePreview(Thumbnail sender, Thumbnail.PreviewEventArgs e)

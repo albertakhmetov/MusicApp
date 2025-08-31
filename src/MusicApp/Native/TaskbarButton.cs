@@ -32,7 +32,7 @@ internal class TaskbarButton : ObservableObject, IDisposable
 {
     private static uint IdCounter = 0;
 
-    private bool isEnabled = true;
+    private bool isEnabled = true, isVisible = true;
     private string? toolTip;
     private SafeHandle? icon;
 
@@ -52,6 +52,12 @@ internal class TaskbarButton : ObservableObject, IDisposable
     {
         get => isEnabled;
         set => Set(ref isEnabled, value);
+    }
+
+    public bool IsVisible
+    {
+        get => isVisible;
+        set => Set(ref isVisible, value);
     }
 
     public string? ToolTip
